@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, Lock, Bell, Palette, Save, Eye, EyeOff, Download, Wrench } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { chapters, cities } from '../data/mockData';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -16,7 +17,9 @@ export default function Settings() {
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    emergencyContact: user?.emergencyContact || ''
+    emergencyContact: user?.emergencyContact || '',
+    chapter: user?.chapter || '',
+    city: user?.city || ''
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -153,6 +156,37 @@ export default function Settings() {
                     />
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Chapter
+                    </label>
+                    <select
+                      value={profileData.chapter}
+                      onChange={(e) => setProfileData({ ...profileData, chapter: e.target.value })}
+                      className="w-full px-4 py-3 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transition-all duration-200"
+                    >
+                      <option value="">Select a chapter</option>
+                      {chapters.map(chapter => (
+                        <option key={chapter} value={chapter}>{chapter}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      City
+                    </label>
+                    <select
+                      value={profileData.city}
+                      onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
+                      className="w-full px-4 py-3 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transition-all duration-200"
+                    >
+                      <option value="">Select a city</option>
+                      {cities.map(city => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+                  </div>
                   {user?.role === 'parent' && (
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">

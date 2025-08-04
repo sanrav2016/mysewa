@@ -8,6 +8,8 @@ export interface User {
   joinedDate: string;
   phone?: string;
   emergencyContact?: string;
+  chapter?: string;
+  city?: string;
 }
 
 export interface EventInstance {
@@ -33,6 +35,9 @@ export interface Event {
   instances: EventInstance[];
   isRecurring: boolean;
   tags: string[];
+  status: 'draft' | 'published' | 'archived';
+  chapters: string[];
+  cities: string[];
 }
 
 export interface UserEventSignup {

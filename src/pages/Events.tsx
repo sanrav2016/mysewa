@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Calendar, MapPin, Users, Clock, ArrowRight } from 'lucide-react';
 import { mockEvents } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 import { format } from 'date-fns';
 
 export default function Events() {
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'category'>('date');
@@ -13,6 +15,17 @@ export default function Events() {
 
   // Filter and sort events
   const filteredEvents = mockEvents
+    .filter(event => {
+      // Hide archived events from non-admins
+      if (user?.role !== 'admin' && event.status === 'archived') {
+        return false;
+      }
+      // Hide draft events from non-admins
+      if (user?.role !== 'admin' && event.status === 'draft') {
+        return false;
+      }
+      return true;
+    })
     .filter(event => {
       const matchesSearch = search === '' ||
         event.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -127,13 +140,22 @@ export default function Events() {
                         <p className="text-slate-600 dark:text-slate-300 text-sm mb-3 line-clamp-2">
                           {event.description}
                         </p>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-lg text-sm font-medium">
                             {event.category}
                           </span>
                           {event.isRecurring && (
                             <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-lg text-sm font-medium">
                               Recurring
+                            </span>
+                          )}
+                          {user?.role === 'admin' && event.status !== 'published' && (
+                            <span className={`px-3 py-1 rounded-lg text-sm font-medium capitalize ${
+                              event.status === 'draft' 
+                                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+                                : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
+                            }`}>
+                              {event.status}
                             </span>
                           )}
                         </div>

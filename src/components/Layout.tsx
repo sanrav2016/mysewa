@@ -15,7 +15,8 @@ import {
   Moon,
   Heart,
   Menu,
-  X
+  X,
+  Trophy
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -40,6 +41,7 @@ export default function Layout() {
     { path: '/calendar', icon: Calendar, label: 'Calendar' },
     { path: '/events', icon: List, label: 'Events' },
     { path: '/chapter', icon: Users, label: 'Chapter' },
+    { path: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 

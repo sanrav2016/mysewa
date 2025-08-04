@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, ArrowLeft, UserPlus, UserMinus, CheckCircle, XCircle, User, Shield, UserCheck, Search, Edit, Save } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import { mockEvents, mockSignups, mockUsers } from '../data/mockData';
 import { format } from 'date-fns';
 
@@ -286,6 +287,7 @@ function ParticipantManagementModal({ isOpen, onClose, sessionData, sessionSignu
 export default function SessionDetail() {
     const { sessionId } = useParams();
     const { user } = useAuth();
+    const { addNotification } = useNotification();
     const navigate = useNavigate();
 
     const [cancelReason, setCancelReason] = useState('');
@@ -443,9 +445,25 @@ export default function SessionDetail() {
         // Mock action based on type
         switch (modalState.type) {
             case 'signup':
+                addNotification({
+                    type: 'signup',
+                    title: 'Successfully signed up!',
+                    message: `You have been confirmed for ${sessionData.eventTitle}`,
+                    eventTitle: sessionData.eventTitle,
+                    eventId: sessionData.eventId,
+                    sessionId: sessionData.id
+                });
                 alert('Successfully signed up for the session!');
                 break;
             case 'waitlist':
+                addNotification({
+                    type: 'waitlist_moved',
+                    title: 'Added to waitlist',
+                    message: `You have been added to the waitlist for ${sessionData.eventTitle}`,
+                    eventTitle: sessionData.eventTitle,
+                    eventId: sessionData.eventId,
+                    sessionId: sessionData.id
+                });
                 alert('Added to waitlist!');
                 break;
             case 'cancel':

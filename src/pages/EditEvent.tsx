@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, Plus, Trash2, Save, Copy, Repeat, ArrowLeft, Edit, Eye, EyeOff } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Plus, Trash2, Save, Copy, Repeat, ArrowLeft, Edit, Eye, EyeOff, Archive, FileText, Trash } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { mockEvents } from '../data/mockData';
+import { mockEvents, chapters, cities } from '../data/mockData';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import MDEditor from '@uiw/react-md-editor';
@@ -33,6 +33,52 @@ interface BulkCreateOptions {
     description: string;
 }
 
+interface ConfirmationModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    title: string;
+    message: string;
+    confirmText: string;
+    confirmColor: string;
+}
+
+function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirmText, confirmColor }: ConfirmationModalProps) {
+    return (
+        <div
+            className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 transition-opacity duration-300 ${
+                isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            }`}
+        >
+            <div
+                className={`bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full border-4 border-dashed border-orange-200 dark:border-slate-600 transform transition-all duration-300 ${
+                    isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
+                }`}
+            >
+                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4 font-caveat">
+                    {title}
+                </h3>
+                <p className="text-slate-600 dark:text-slate-300 mb-6">
+                    {message}
+                </p>
+                <div className="flex gap-3">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors border-2 border-dashed border-slate-300 dark:border-slate-600"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className={`flex-1 px-4 py-2 text-white rounded-xl font-medium transition-colors border-2 border-dashed ${confirmColor}`}
+                    >
+                        {confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 export default function EditEvent() {
     const { eventId, sessionId } = useParams();
     const { user } = useAuth();
@@ -47,7 +93,10 @@ export default function EditEvent() {
         description: '',
         category: '',
         tags: '',
-        isRecurring: false
+        isRecurring: false,
+        status: 'draft' as 'draft' | 'published' | 'archived',
+        chapters: [] as string[],
+        cities: [] as string[]
     });
 
     const [instances, setInstances] = useState<EventInstance[]>([
@@ -62,6 +111,7 @@ export default function EditEvent() {
     ]);
 
     const [showBulkCreate, setShowBulkCreate] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [bulkOptions, setBulkOptions] = useState<BulkCreateOptions>({
         startDate: '',
         endDate: '',
@@ -99,6 +149,9 @@ export default function EditEvent() {
                     category: event.category,
                     tags: event.tags.join(', '),
                     isRecurring: event.isRecurring
+                    status: event.status,
+                    chapters: event.chapters,
+                    cities: event.cities
                 });
                 setInstances(event.instances.map(instance => (
                     {
@@ -132,6 +185,9 @@ export default function EditEvent() {
                         category: parentEvent.category,
                         tags: parentEvent.tags.join(', '),
                         isRecurring: parentEvent.isRecurring
+                        status: parentEvent.status,
+                        chapters: parentEvent.chapters,
+                        cities: parentEvent.cities
                     });
                     setInstances([{
                         id: sessionData.id,
@@ -242,7 +298,7 @@ export default function EditEvent() {
         setInstances(updated);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent, action: 'publish' | 'draft' | 'archive') => {
         e.preventDefault();
 
         // Validation
@@ -256,10 +312,20 @@ export default function EditEvent() {
             return;
         }
 
+        if (eventData.chapters.length === 0) {
+            alert('Please select at least one chapter');
+            return;
+        }
+
+        if (eventData.cities.length === 0) {
+            alert('Please select at least one city');
+            return;
+        }
         // Mock save logic
-        const action = isEditing ? 'updated' : 'created';
-        console.log(`${action} event:`, { eventData, instances });
-        alert(`Event ${action} successfully!`);
+        const verb = isEditing ? 'updated' : 'created';
+        const statusText = action === 'publish' ? 'published' : action === 'draft' ? 'saved as draft' : 'archived';
+        console.log(`${verb} event:`, { eventData: { ...eventData, status: action }, instances });
+        alert(`Event ${verb} and ${statusText} successfully!`);
 
         // Navigate back
         if (isEditingSession) {
@@ -272,12 +338,28 @@ export default function EditEvent() {
     };
 
     const handleDelete = () => {
-        if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
-            alert('Event deleted successfully!');
-            navigate('/events');
-        }
+        setShowDeleteModal(false);
+        alert('Event deleted successfully!');
+        navigate('/events');
     };
 
+    const toggleChapter = (chapter: string) => {
+        setEventData(prev => ({
+            ...prev,
+            chapters: prev.chapters.includes(chapter)
+                ? prev.chapters.filter(c => c !== chapter)
+                : [...prev.chapters, chapter]
+        }));
+    };
+
+    const toggleCity = (city: string) => {
+        setEventData(prev => ({
+            ...prev,
+            cities: prev.cities.includes(city)
+                ? prev.cities.filter(c => c !== city)
+                : [...prev.cities, city]
+        }));
+    };
     if (user?.role !== 'admin') {
         return (
             <div className="text-center py-12">
@@ -319,20 +401,33 @@ export default function EditEvent() {
                                         : 'Set up a new volunteer opportunity for your chapter'
                                 }
                             </p>
+                            {isEditing && (
+                                <div className="mt-2">
+                                    <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium capitalize ${
+                                        eventData.status === 'published' 
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                                            : eventData.status === 'draft'
+                                                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
+                                    }`}>
+                                        {eventData.status}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         {isEditing && !isEditingSession && (
                             <button
-                                onClick={handleDelete}
+                                onClick={() => setShowDeleteModal(true)}
                                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors border-2 border-dashed border-red-400"
                             >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash className="w-4 h-4" />
                                 Delete Event
                             </button>
                         )}
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
                     {/* Basic Event Info */}
                     {!isEditingSession && (
                         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-lg shadow-lg border-2 border-dashed border-orange-200 dark:border-slate-600">
@@ -387,6 +482,43 @@ export default function EditEvent() {
 
                                 <DescriptionEditor eventData={eventData} setEventData={setEventData} />
 
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        Chapters *
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50">
+                                        {chapters.map(chapter => (
+                                            <label key={chapter} className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={eventData.chapters.includes(chapter)}
+                                                    onChange={() => toggleChapter(chapter)}
+                                                    className="w-4 h-4 text-orange-500 bg-white dark:bg-slate-700 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded focus:ring-orange-400 dark:focus:ring-orange-500"
+                                                />
+                                                <span className="text-sm text-slate-700 dark:text-slate-300">{chapter}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        Cities *
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50">
+                                        {cities.map(city => (
+                                            <label key={city} className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={eventData.cities.includes(city)}
+                                                    onChange={() => toggleCity(city)}
+                                                    className="w-4 h-4 text-orange-500 bg-white dark:bg-slate-700 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded focus:ring-orange-400 dark:focus:ring-orange-500"
+                                                />
+                                                <span className="text-sm text-slate-700 dark:text-slate-300">{city}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
                                 <div className="md:col-span-2">
                                     <label className="flex items-center gap-3 cursor-pointer">
                                         <input
@@ -575,18 +707,49 @@ export default function EditEvent() {
                         </div>
                     </div>
 
-                    {/* Submit Button */}
-                    <div className="flex justify-end">
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap justify-end gap-3">
+                        {isEditing && eventData.status !== 'archived' && (
+                            <button
+                                onClick={(e) => handleSubmit(e, 'archive')}
+                                className="flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-medium transition-colors border-2 border-dashed border-slate-400"
+                            >
+                                <Archive className="w-4 h-4" />
+                                Archive
+                            </button>
+                        )}
+                        
+                        {(!isEditing || eventData.status === 'draft') && (
+                            <button
+                                onClick={(e) => handleSubmit(e, 'draft')}
+                                className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-medium transition-colors border-2 border-dashed border-yellow-400"
+                            >
+                                <FileText className="w-4 h-4" />
+                                Save Draft
+                            </button>
+                        )}
+                        
                         <button
-                            type="submit"
+                            onClick={(e) => handleSubmit(e, 'publish')}
                             className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg font-bold text-lg transition-colors border-2 border-dashed border-green-400"
                         >
                             <Save className="w-5 h-5" />
-                            Save Changes
+                            {isEditing ? 'Publish Changes' : 'Publish Event'}
                         </button>
                     </div>
                 </form>
             </div>
+            
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={handleDelete}
+                title="Delete Event"
+                message="Are you sure you want to delete this event? This action cannot be undone and will remove all associated sessions and signups."
+                confirmText="Delete Event"
+                confirmColor="bg-red-500 hover:bg-red-600 border-red-400"
+            />
+            
             <div
                 className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 transition-opacity duration-300 ${showBulkCreate ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                     }`}

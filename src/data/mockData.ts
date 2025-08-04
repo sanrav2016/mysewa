@@ -8,7 +8,9 @@ export const mockUsers: User[] = [
     role: 'student',
     totalHours: 45,
     joinedDate: '2024-01-15',
-    phone: '(555) 123-4567'
+    phone: '(555) 123-4567',
+    chapter: 'Central New Jersey',
+    city: 'Edison'
   },
   {
     id: '2',
@@ -18,7 +20,9 @@ export const mockUsers: User[] = [
     totalHours: 78,
     joinedDate: '2023-09-10',
     phone: '(555) 987-6543',
-    emergencyContact: '(555) 111-2222'
+    emergencyContact: '(555) 111-2222',
+    chapter: 'Central New Jersey',
+    city: 'Monroe'
   },
   {
     id: '3',
@@ -27,7 +31,9 @@ export const mockUsers: User[] = [
     role: 'admin',
     totalHours: 120,
     joinedDate: '2023-01-01',
-    phone: '(555) 555-5555'
+    phone: '(555) 555-5555',
+    chapter: 'Central New Jersey',
+    city: 'Edison'
   },
   {
     id: '4',
@@ -36,7 +42,9 @@ export const mockUsers: User[] = [
     role: 'student',
     totalHours: 32,
     joinedDate: '2024-02-01',
-    phone: '(555) 234-5678'
+    phone: '(555) 234-5678',
+    chapter: 'North Jersey',
+    city: 'Parsippany'
   },
   {
     id: '5',
@@ -45,7 +53,9 @@ export const mockUsers: User[] = [
     role: 'parent',
     totalHours: 56,
     joinedDate: '2023-11-15',
-    phone: '(555) 345-6789'
+    phone: '(555) 345-6789',
+    chapter: 'Central New Jersey',
+    city: 'Monroe'
   }
 ];
 
@@ -58,6 +68,9 @@ export const mockEvents: Event[] = [
     createdBy: '3',
     createdAt: '2024-01-01',
     isRecurring: true,
+    status: 'published',
+    chapters: ['Central New Jersey'],
+    cities: ['Edison', 'Monroe'],
     tags: ['outdoor', 'environment', 'physical'],
     instances: [
       {
@@ -94,6 +107,9 @@ export const mockEvents: Event[] = [
     createdBy: '3',
     createdAt: '2024-01-05',
     isRecurring: false,
+    status: 'published',
+    chapters: ['Central New Jersey', 'North Jersey'],
+    cities: ['Edison', 'Parsippany'],
     tags: ['indoor', 'community', 'sorting'],
     instances: [
       {
@@ -118,6 +134,9 @@ export const mockEvents: Event[] = [
     createdBy: '3',
     createdAt: '2024-01-10',
     isRecurring: true,
+    status: 'published',
+    chapters: ['Central New Jersey'],
+    cities: ['Edison'],
     tags: ['indoor', 'seniors', 'social'],
     instances: [
       {
@@ -136,6 +155,28 @@ export const mockEvents: Event[] = [
   }
 ];
 
+export const chapters = [
+  'Central New Jersey',
+  'North Jersey',
+  'South Jersey',
+  'New York Metro',
+  'Philadelphia',
+  'Connecticut',
+  'Long Island'
+];
+
+export const cities = [
+  'Edison',
+  'Monroe',
+  'Parsippany',
+  'Princeton',
+  'New Brunswick',
+  'Piscataway',
+  'Somerset',
+  'Franklin',
+  'East Brunswick',
+  'South Brunswick'
+];
 export const mockSignups: UserEventSignup[] = [
   {
     id: '1',

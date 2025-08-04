@@ -1,19 +1,25 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Mail, Phone, Calendar, Clock, Users, Award, GraduationCap, Handshake } from 'lucide-react';
+import { Search, Mail, Phone, Calendar, Clock, Users, Award, GraduationCap, Handshake, MapPin, Building } from 'lucide-react';
 import { mockUsers, mockSignups } from '../data/mockData';
 import { format } from 'date-fns';
 
 export default function Chapter() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [chapterFilter, setChapterFilter] = useState<string>('all');
+  const [cityFilter, setCityFilter] = useState<string>('all');
 
   const filteredMembers = mockUsers.filter(member => {
     const matchesSearch = search === '' ||
       member.name.toLowerCase().includes(search.toLowerCase()) ||
-      member.email.toLowerCase().includes(search.toLowerCase());
+      member.email.toLowerCase().includes(search.toLowerCase()) ||
+      (member.chapter && member.chapter.toLowerCase().includes(search.toLowerCase())) ||
+      (member.city && member.city.toLowerCase().includes(search.toLowerCase()));
     const matchesRole = roleFilter === 'all' || member.role === roleFilter;
-    return matchesSearch && matchesRole;
+    const matchesChapter = chapterFilter === 'all' || member.chapter === chapterFilter;
+    const matchesCity = cityFilter === 'all' || member.city === cityFilter;
+    return matchesSearch && matchesRole && matchesChapter && matchesCity;
   });
 
   const totalMembers = mockUsers.length;
@@ -21,6 +27,8 @@ export default function Chapter() {
   const parentCount = mockUsers.filter(u => u.role === 'parent').length;
   const adminCount = mockUsers.filter(u => u.role === 'admin').length;
 
+  const chapters = Array.from(new Set(mockUsers.map(u => u.chapter).filter(Boolean)));
+  const cities = Array.from(new Set(mockUsers.map(u => u.city).filter(Boolean)));
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -78,7 +86,7 @@ export default function Chapter() {
 
       {/* Filters */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col gap-4">
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
@@ -92,7 +100,7 @@ export default function Chapter() {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {(['all', 'student', 'parent', 'admin'] as const).map((role) => (
               <button
                 key={role}
@@ -105,6 +113,28 @@ export default function Chapter() {
                 {role.charAt(0).toUpperCase() + role.slice(1)}
               </button>
             ))}
+
+            <select
+              value={chapterFilter}
+              onChange={(e) => setChapterFilter(e.target.value)}
+              className="px-4 py-2 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+            >
+              <option value="all">All Chapters</option>
+              {chapters.map(chapter => (
+                <option key={chapter} value={chapter}>{chapter}</option>
+              ))}
+            </select>
+
+            <select
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              className="px-4 py-2 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+            >
+              <option value="all">All Cities</option>
+              {cities.map(city => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
@@ -156,6 +186,18 @@ export default function Chapter() {
                       <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm">
                         <Phone className="w-4 h-4" />
                         {member.phone}
+                      </div>
+                    )}
+                    {member.chapter && (
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm">
+                        <Building className="w-4 h-4" />
+                        {member.chapter}
+                      </div>
+                    )}
+                    {member.city && (
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm">
+                        <MapPin className="w-4 h-4" />
+                        {member.city}
                       </div>
                     )}
                     <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm">
