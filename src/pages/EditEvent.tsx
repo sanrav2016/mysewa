@@ -781,6 +781,61 @@ export default function EditEvent() {
                 confirmColor="bg-red-500 hover:bg-red-600 border-red-400"
             />
 
+            {/* Schedule Publish Modal */}
+            <div
+                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4 transition-opacity duration-300 ${
+                    showScheduleModal ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                }`}
+            >
+                <div
+                    className={`bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full border-4 border-dashed border-orange-200 dark:border-slate-600 transform transition-all duration-300 ${
+                        showScheduleModal ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
+                    }`}
+                >
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4 font-caveat">
+                        Schedule Publish
+                    </h3>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Publish Date
+                            </label>
+                            <input
+                                type="date"
+                                value={scheduleDate}
+                                onChange={(e) => setScheduleDate(e.target.value)}
+                                className="w-full px-4 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Publish Time
+                            </label>
+                            <input
+                                type="time"
+                                value={scheduleTime}
+                                onChange={(e) => setScheduleTime(e.target.value)}
+                                className="w-full px-4 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                        <button
+                            onClick={() => setShowScheduleModal(false)}
+                            className="flex-1 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors border-2 border-dashed border-slate-300 dark:border-slate-600"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSchedulePublish}
+                            className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors border-2 border-dashed border-green-400"
+                        >
+                            Schedule
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div
                 className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4 transition-opacity duration-300 ${showBulkCreate ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                     }`}

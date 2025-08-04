@@ -47,6 +47,7 @@ export default function Layout() {
 
   if (user?.role === 'admin') {
     navItems.splice(-1, 0, { path: '/create-event', icon: Plus, label: 'Create Event' });
+    navItems.splice(-1, 0, { path: '/admin', icon: Shield, label: 'Admin Panel' });
   }
 
   const closeSidebar = () => setSidebarOpen(false);

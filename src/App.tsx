@@ -58,6 +58,11 @@ function App() {
                 } />
                 <Route path="chapter" element={<Chapter />} />
                 <Route path="leaderboard" element={<Leaderboard />} />
+                <Route path="admin" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } />
                 <Route path="settings" element={<Settings />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
