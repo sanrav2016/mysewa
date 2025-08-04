@@ -88,7 +88,12 @@ export default function Leaderboard() {
             <Trophy className="w-8 h-8 text-yellow-200" />
             <div>
               <p className="text-yellow-100 text-sm font-medium">Top Volunteer</p>
-              <p className="text-2xl font-bold">{filteredUsers[0]?.name || 'N/A'}</p>
+              <p className="text-2xl font-bold">
+                {viewType === 'individual' 
+                  ? (filteredUsers[0]?.name || 'N/A')
+                  : (locationStats[0]?.name || 'N/A')
+                }
+              </p>
             </div>
           </div>
         </div>
@@ -99,7 +104,10 @@ export default function Leaderboard() {
             <div>
               <p className="text-blue-100 text-sm font-medium">Total Hours</p>
               <p className="text-3xl font-bold">
-                {filteredUsers.reduce((sum, user) => sum + user.calculatedHours, 0)}
+                {viewType === 'individual'
+                  ? filteredUsers.reduce((sum, user) => sum + user.calculatedHours, 0)
+                  : locationStats.reduce((sum, loc) => sum + loc.totalHours, 0)
+                }
               </p>
             </div>
           </div>
@@ -109,8 +117,10 @@ export default function Leaderboard() {
           <div className="flex items-center gap-4">
             <Users className="w-8 h-8 text-green-200" />
             <div>
-              <p className="text-green-100 text-sm font-medium">Active Volunteers</p>
-              <p className="text-3xl font-bold">{filteredUsers.length}</p>
+              <p className="text-green-100 text-sm font-medium">
+                {viewType === 'individual' ? 'Active Volunteers' : `Active ${viewType}s`}
+              </p>
+              <p className="text-3xl font-bold">{displayData.length}</p>
             </div>
           </div>
         </div>
@@ -118,13 +128,31 @@ export default function Leaderboard() {
 
       {/* Filters */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600 sticky top-6 z-50">
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="space-y-4">
+          {/* View Type Selector */}
+          <div className="flex gap-2">
+            {(['individual', 'chapter', 'city'] as const).map((type) => (
+              <button
+                key={type}
+                onClick={() => setViewType(type)}
+                className={`px-4 py-2 rounded-xl font-medium transition-colors capitalize ${
+                  viewType === type
+                    ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
+                    : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search volunteers..."
+                placeholder={`Search ${viewType}...`}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
@@ -142,16 +170,43 @@ export default function Leaderboard() {
               <option value="events">Sort by Events</option>
             </select>
 
-            <select
-              value={filterBy}
-              onChange={(e) => setFilterBy(e.target.value as FilterBy)}
-              className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-            >
-              <option value="all">All Roles</option>
-              <option value="student">Students</option>
-              <option value="parent">Parents</option>
-              <option value="admin">Admins</option>
-            </select>
+            {viewType === 'individual' && (
+              <>
+                <select
+                  value={filterBy}
+                  onChange={(e) => setFilterBy(e.target.value as FilterBy)}
+                  className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                >
+                  <option value="all">All Roles</option>
+                  <option value="student">Students</option>
+                  <option value="parent">Parents</option>
+                  <option value="admin">Admins</option>
+                </select>
+
+                <select
+                  value={chapterFilter}
+                  onChange={(e) => setChapterFilter(e.target.value)}
+                  className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                >
+                  <option value="all">All Chapters</option>
+                  {chapters.map(chapter => (
+                    <option key={chapter} value={chapter}>{chapter}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={cityFilter}
+                  onChange={(e) => setCityFilter(e.target.value)}
+                  className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                >
+                  <option value="all">All Cities</option>
+                  {cities.map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              </>
+            )}
+          </div>
           </div>
         </div>
       </div>
@@ -159,16 +214,19 @@ export default function Leaderboard() {
       {/* Leaderboard */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
         <div className="space-y-4">
-          {filteredUsers.length === 0 ? (
+          {displayData.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-slate-600 dark:text-slate-300 text-lg">
-                No volunteers found matching your criteria
+                No {viewType} found matching your criteria
               </p>
             </div>
           ) : (
-            filteredUsers.map((user, index) => {
+            displayData.map((item, index) => {
               const rank = index + 1;
-              return (
+              
+              if (viewType === 'individual') {
+                const user = item as any;
+                return (
                 <Link
                   key={user.id}
                   to={`/profile/${user.id}`}
@@ -232,7 +290,54 @@ export default function Leaderboard() {
                     </div>
                   </div>
                 </Link>
-              );
+                );
+              } else {
+                const location = item as any;
+                return (
+                  <div
+                    key={location.name}
+                    className="flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-orange-200 dark:border-slate-500 hover:bg-orange-50 dark:hover:bg-slate-700 transition-all hover:scale-102 group"
+                  >
+                    <div className="flex items-center gap-4">
+                      {getRankIcon(rank)}
+                      <div className={`w-12 h-12 bg-gradient-to-br ${getRankColor(rank)} rounded-xl flex items-center justify-center text-white font-bold transform transition-all group-hover:rotate-6`}>
+                        {viewType === 'chapter' ? <Building className="w-6 h-6" /> : <MapPin className="w-6 h-6" />}
+                      </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">
+                        {location.name}
+                      </h3>
+                      <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
+                        <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
+                          {location.memberCount} members
+                        </span>
+                        <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
+                          {location.avgHours} avg hours
+                        </span>
+                      </div>
+                    </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center gap-6">
+                        <div className="text-center">
+                          <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                            <Clock className="w-4 h-4" />
+                            <span className="text-2xl font-bold">{location.totalHours}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">hours</p>
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                            <Calendar className="w-4 h-4" />
+                            <span className="text-2xl font-bold">{location.totalEvents}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">events</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
             })
           )}
         </div>

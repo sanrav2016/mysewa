@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, MapPin, Clock, Filter, Search } from 'lucide-react';
+import { Calendar, MapPin, Clock, Filter, Search, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { mockEvents, mockSignups } from '../data/mockData';
 import { format } from 'date-fns';
@@ -149,6 +149,21 @@ export default function History() {
                           <Clock className="w-4 h-4" />
                           Signed up {format(new Date(signup.signupDate), 'MMM d, yyyy')}
                         </div>
+                        {signup.attendance && (
+                          <div className="flex items-center gap-1">
+                            {signup.attendance === 'present' ? (
+                              <>
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                                <span className="text-green-600">Present</span>
+                              </>
+                            ) : signup.attendance === 'absent' ? (
+                              <>
+                                <XCircle className="w-4 h-4 text-red-600" />
+                                <span className="text-red-600">Absent</span>
+                              </>
+                            ) : null}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-lg text-sm font-medium">

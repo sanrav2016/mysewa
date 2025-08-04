@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, Plus, Trash2, Save, Copy, Repeat, ArrowLeft, Edit, Eye, EyeOff, Archive, FileText, Trash } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Plus, Trash2, Save, Copy, Repeat, ArrowLeft, Edit, Eye, EyeOff, Archive, FileText, Trash, ChevronDown, AlertTriangle, User, Hash } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { mockEvents, chapters, cities } from '../data/mockData';
@@ -17,6 +17,13 @@ interface EventInstance {
     studentCapacity: number;
     parentCapacity: number;
     description?: string;
+    restrictions?: {
+        prerequisiteEvent?: string;
+        minAge?: number;
+        maxAge?: number;
+        minHours?: number;
+        maxHours?: number;
+    };
 }
 
 interface BulkCreateOptions {
@@ -107,6 +114,10 @@ export default function EditEvent() {
 
     const [showBulkCreate, setShowBulkCreate] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showPublishMenu, setShowPublishMenu] = useState(false);
+    const [showScheduleModal, setShowScheduleModal] = useState(false);
+    const [scheduleDate, setScheduleDate] = useState('');
+    const [scheduleTime, setScheduleTime] = useState('');
     const [bulkOptions, setBulkOptions] = useState<BulkCreateOptions>({
         startDate: '',
         endDate: '',
@@ -213,7 +224,8 @@ export default function EditEvent() {
                     location: bulkOptions.location,
                     studentCapacity: bulkOptions.studentCapacity,
                     parentCapacity: bulkOptions.parentCapacity,
-                    description: bulkOptions.description
+                    description: bulkOptions.description,
+                    restrictions: {}
                 });
                 current.setDate(current.getDate() + 1);
             } else if (bulkOptions.frequency === 'weekly') {
@@ -224,7 +236,8 @@ export default function EditEvent() {
                         location: bulkOptions.location,
                         studentCapacity: bulkOptions.studentCapacity,
                         parentCapacity: bulkOptions.parentCapacity,
-                        description: bulkOptions.description
+                        description: bulkOptions.description,
+                        restrictions: {}
                     });
                 }
                 current.setDate(current.getDate() + 1);
@@ -235,7 +248,8 @@ export default function EditEvent() {
                     location: bulkOptions.location,
                     studentCapacity: bulkOptions.studentCapacity,
                     parentCapacity: bulkOptions.parentCapacity,
-                    description: bulkOptions.description
+                    description: bulkOptions.description,
+                    restrictions: {}
                 });
                 current.setMonth(current.getMonth() + 1);
             }
@@ -268,7 +282,8 @@ export default function EditEvent() {
             location: '',
             studentCapacity: 10,
             parentCapacity: 5,
-            description: ''
+            description: '',
+            restrictions: {}
         }]);
     };
 
@@ -322,6 +337,28 @@ export default function EditEvent() {
         console.log(`${verb} event:`, { eventData: { ...eventData, status: action }, instances });
         alert(`Event ${verb} and ${statusText} successfully!`);
 
+        // Navigate back
+        if (isEditingSession) {
+            navigate(`/sessions/${sessionId}`);
+        } else if (isEditing) {
+            navigate(`/events/${eventId}`);
+        } else {
+            navigate('/events');
+        }
+    };
+
+    const handleSchedulePublish = () => {
+        if (!scheduleDate || !scheduleTime) {
+            alert('Please select both date and time for scheduled publish');
+            return;
+        }
+        
+        const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
+        console.log('Scheduled publish for:', scheduledDateTime);
+        alert(`Event scheduled to publish on ${scheduledDateTime.toLocaleString()}`);
+        setShowScheduleModal(false);
+        setShowPublishMenu(false);
+        
         // Navigate back
         if (isEditingSession) {
             navigate(`/sessions/${sessionId}`);

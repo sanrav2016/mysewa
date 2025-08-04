@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Calendar, Clock, Mail, Phone, Settings, MapPin, Award } from 'lucide-react';
+import { Calendar, Clock, Mail, Phone, Settings, MapPin, Award, Building } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { mockUsers, mockEvents, mockSignups } from '../data/mockData';
 import { format } from 'date-fns';
@@ -81,6 +81,18 @@ export default function Profile() {
                     {user.phone}
                   </div>
                 )}
+              {user.chapter && (
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                  <Building className="w-4 h-4" />
+                  {user.chapter}
+                </div>
+              )}
+              {user.city && (
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                  <MapPin className="w-4 h-4" />
+                  {user.city}
+                </div>
+              )}
               </div>
             </div>
           </div>
@@ -201,6 +213,13 @@ export default function Profile() {
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
                         {format(new Date(instance!.startDate), 'MMM d, yyyy')}
+                        {signup.attendance && (
+                          <span className={`ml-2 text-xs ${
+                            signup.attendance === 'present' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            ({signup.attendance})
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="w-4 h-4" />
