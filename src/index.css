@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  font-family: 'DM Sans', sans-serif;
+}
+
+@layer components {
+  .scale-102 {
+    transform: scale(1.02);
+  }
+}
+
+.ProseMirror {
+  outline: none;
+  min-height: 120px;
+  font-size: 1rem;
+  color: #1e293b;
+  list-style-position: inside;
+  width: 100%; /* w-full */
+  padding: 0.75rem 1rem; /* py-3 px-4 */
+  border-width: 2px; /* border-2 */
+  border-style: dashed; /* border-dashed */
+  border-color: #fed7aa; /* border-orange-200 */
+  border-radius: 0.5rem; /* rounded-lg */
+  background-color: rgba(255, 255, 255, 0.5); /* bg-white/50 */
+  transition-property: color, border-color, background-color; /* transition-colors */
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus state */
+.ProseMirror:focus {
+  border-color: #fb923c; /* focus:border-orange-400 */
+  outline: none; /* focus:outline-none */
+}
+
+/* Dark mode */
+.dark .ProseMirror {
+  color: #f8fafc; /* text-slate-100 */
+  border-color: #475569; /* dark:border-slate-600 */
+  background-color: rgba(51, 65, 85, 0.5); /* dark:bg-slate-700/50 */
+}
+
+.dark .ProseMirror:focus {
+  border-color: #fb923c; /* dark:focus:border-orange-400 */
+}
+
+/* Placeholder text for empty paragraphs */
+.ProseMirror p.is-editor-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #94a3b8;
+  pointer-events: none;
+  height: 0;
+}
+
+/* BULLET LISTS */
+.ProseMirror ul {
+  list-style-type: disc;
+  margin-left: 1rem;
+  padding-left: 1rem;
+}
+
+/* NUMBERED LISTS */
+.ProseMirror ol {
+  list-style-type: decimal;
+  margin-left: 1rem;
+  padding-left: 1rem;
+}
+
+/* LIST ITEMS */
+.ProseMirror li {
+  margin-bottom: 0.25rem;
+}
+
+/* BLOCKQUOTE */
+.ProseMirror blockquote {
+  border-left: 4px solid #f97316; /* orange-500 */
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 1rem;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  color: #92400e; /* orange-800 */
+  font-style: italic;
+  background-color: #ffedd5; /* orange-100 */
+  border-radius: 0.25rem;
+}
+
+/* Dark mode blockquote */
+.dark .ProseMirror blockquote {
+  border-left-color: #fb923c; /* orange-400 */
+  color: #fbbf24; /* orange-300 */
+  background-color: #78350f; /* orange-900 */
+}
+
+/* CODE BLOCK */
+.ProseMirror pre {
+  background-color: #f3f4f6; /* slate-100 */
+  color: #111827; /* slate-900 */
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  font-family: 'Source Code Pro', monospace, monospace;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Dark mode code block */
+.dark .ProseMirror pre {
+  background-color: rgb(51, 65, 85); /* slate-700 */
+  color: #f8fafc; /* slate-100 */
+}
+
+/* Links inside the editor */
+.ProseMirror a {
+  color: #f97316; /* orange-500 */
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.ProseMirror a:hover,
+.ProseMirror a:focus {
+  color: #ea580c; /* orange-600 */
+  outline: none;
+  text-decoration: none;
+}
+
+/* Dark mode links */
+.dark .ProseMirror a {
+  color: #fb923c; /* orange-400 */
+}
+
+.dark .ProseMirror a:hover,
+.dark .ProseMirror a:focus {
+  color: #f97316; /* orange-500 */
+}

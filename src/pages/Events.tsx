@@ -1,0 +1,178 @@
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Search, Filter, Calendar, MapPin, Users, Clock, ArrowRight } from 'lucide-react';
+import { mockEvents } from '../data/mockData';
+import { format } from 'date-fns';
+
+export default function Events() {
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'title' | 'category'>('date');
+
+  const categories = Array.from(new Set(mockEvents.map(e => e.category)));
+
+  // Filter and sort events
+  const filteredEvents = mockEvents
+    .filter(event => {
+      const matchesSearch = search === '' ||
+        event.title.toLowerCase().includes(search.toLowerCase()) ||
+        event.description.toLowerCase().includes(search.toLowerCase()) ||
+        event.category.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = categoryFilter === 'all' || event.category === categoryFilter;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'title':
+          return a.title.localeCompare(b.title);
+        case 'category':
+          return a.category.localeCompare(b.category);
+        case 'date':
+        default:
+          const aNextInstance = a.instances.find(i => new Date(i.startDate) > new Date());
+          const bNextInstance = b.instances.find(i => new Date(i.startDate) > new Date());
+          if (!aNextInstance && !bNextInstance) return 0;
+          if (!aNextInstance) return 1;
+          if (!bNextInstance) return -1;
+          return new Date(aNextInstance.startDate).getTime() - new Date(bNextInstance.startDate).getTime();
+      }
+    });
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
+        <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 transform">
+          All Events
+        </h1>
+        <p className="text-slate-600 dark:text-slate-300 transform">
+          Discover volunteer opportunities and make a difference
+        </p>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search events..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform"
+            >
+              <option value="all">All Categories</option>
+              {categories.map(category => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'date' | 'title' | 'category')}
+              className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform"
+            >
+              <option value="date">Sort by Date</option>
+              <option value="title">Sort by Title</option>
+              <option value="category">Sort by Category</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Events Grid */}
+      <div>
+        {filteredEvents.length === 0 ? (
+          <div className="col-span-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-12 rounded-2xl shadow-lg text-center transform border-4 border-orange-200 dark:border-slate-600">
+            <p className="text-slate-600 dark:text-slate-300 text-lg">
+              No events found matching your criteria
+            </p>
+          </div>
+        ) : <div className="columns-1 md:columns-2 gap-6">
+          {
+            filteredEvents.map((event, i) => {
+              const nextInstance = event.instances.find(i => new Date(i.startDate) > new Date());
+              const totalSignups = nextInstance
+                ? nextInstance.studentSignups.length + nextInstance.parentSignups.length
+                : 0;
+              const totalCapacity = nextInstance
+                ? nextInstance.studentCapacity + nextInstance.parentCapacity
+                : 0;
+
+              return (
+                <Link to={`/events/${event.id}`}>
+                  <div
+                    key={event.id}
+                    className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600 transform transition-all hover:scale-102 hover:shadow-xl group break-inside-avoid mb-6 space-y-4"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center text-white font-bold transform transition-all ${i % 2 == 1 ? "group-hover:rotate-6" : "group-hover:-rotate-6"}`}>
+                        {event.title.charAt(0)}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                          {event.title}
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-300 text-sm mb-3 line-clamp-2">
+                          {event.description}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-lg text-sm font-medium">
+                            {event.category}
+                          </span>
+                          {event.isRecurring && (
+                            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-lg text-sm font-medium">
+                              Recurring
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {nextInstance && (
+                      <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl mb-4 transform">
+                        <h4 className="font-semibold text-slate-800 dark:text-white mb-2">Next Session:</h4>
+                        <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            {format(new Date(nextInstance.startDate), 'MMM d, yyyy h:mm a')}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            {nextInstance.location}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4" />
+                            {totalSignups}/{totalCapacity} spots filled
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-slate-500 dark:text-slate-400">
+                        {event.instances.length} session{event.instances.length !== 1 ? 's' : ''} available
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })
+          }
+        </div>
+        }
+      </div>
+    </div>
+  );
+}
