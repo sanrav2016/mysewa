@@ -102,17 +102,32 @@ export const mockEvents: Event[] = [
   {
     id: '2',
     title: 'Food Bank Sorting',
-    description: `Please review the available slots below and click on the button to sign up. Thank you!
+    description: `<div>
+  <h1>Volunteer Opportunity Overview</h1>
+  <p>
+    We're excited to have you join us for the upcoming event. Please review the details below:
+  </p>
 
-Volunteers to help at the Radha Gopinath temple event 
+  <h2>What You’ll Be Doing</h2>
+  <ul>
+    <li>Preparing and serving food</li>
+    <li>Helping with setup and cleanup</li>
+    <li>Assisting attendees with directions</li>
+  </ul>
 
-slot : leads + writeup - lead signing up this slot go for this event & should be able to do the writeup
+  <h2>Schedule</h2>
+  <ol>
+    <li>8:00 AM – Arrive and check in</li>
+    <li>8:30 AM – Begin food preparation</li>
+    <li>12:00 PM – Serve meals</li>
+    <li>2:00 PM – Cleanup and closing</li>
+  </ol>
 
-for Sunday 8 am - 10 am slot (Kitchen prasad preparation work)
-for Sunday 12.30-03:00 pm slot (prasad distribution and hall clean up post lunch)
- 
-contact uttam ji - +1 (848)-359-4662
-+1 (848) 252-9499 - Prabhu ji Radha Gopinath temple`,
+  <p>
+    Make sure to wear comfortable clothing and closed-toe shoes. For questions, please visit
+    <a href="https://example.com/faq" target="_blank" rel="noopener noreferrer">our FAQ page</a>.
+  </p>
+</div>`,
     category: 'Community Service',
     createdBy: '3',
     createdAt: '2024-01-05',

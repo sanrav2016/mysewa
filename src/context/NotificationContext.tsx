@@ -97,7 +97,7 @@ function NotificationContainer() {
   };
 
   return (
-    <div className="fixed top-4 right-4 md:right-4 left-4 md:left-auto z-50 space-y-2 max-w-sm">
+    <div className="fixed top-4 right-4 md:right-4 left-4 md:left-auto z-[300] space-y-2 max-w-sm">
       {notifications.map((notification, index) => (
         <div
           key={notification.id}

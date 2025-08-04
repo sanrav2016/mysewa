@@ -92,7 +92,7 @@ export default function Layout() {
 
           <div className="flex flex-col h-full">
             {/* Top sticky header */}
-            <div className="flex items-center gap-3 p-6 sticky top-0 bg-white/80 dark:bg-slate-800/80 border-b-2 border-dashed border-orange-200 dark:border-slate-500 z-[100]">
+            <div className="flex items-center gap-3 p-6 sticky top-0 dark:bg-slate-800/80 border-b-2 border-dashed border-orange-200 dark:border-slate-500 z-[100]">
               <div className="w-16 h-16 py-2 px-1 flex items-center justify-center hover:scale-110 hover:rotate-3 transition-all duration-200">
                 <img src="/sewa_bird.svg" className="drop-shadow-[0_0_15px_rgba(255,255,255,0.25)]" />
               </div>

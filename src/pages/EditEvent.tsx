@@ -4,9 +4,6 @@ import { Calendar, MapPin, Users, Clock, Plus, Trash2, Save, Copy, Repeat, Arrow
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { mockEvents, chapters, cities } from '../data/mockData';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import MDEditor from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import '@uiw/react-markdown-preview/markdown.css';
 
@@ -402,10 +399,10 @@ export default function EditEvent() {
                             {isEditing && (
                                 <div className="mt-2">
                                     <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium capitalize ${eventData.status === 'published'
-                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                                            : eventData.status === 'draft'
-                                                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
-                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
+                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                                        : eventData.status === 'draft'
+                                            ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
                                         }`}>
                                         {eventData.status}
                                     </span>
@@ -748,7 +745,7 @@ export default function EditEvent() {
             />
 
             <div
-                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 transition-opacity duration-300 ${showBulkCreate ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4 transition-opacity duration-300 ${showBulkCreate ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                     }`}
             >
                 <div
@@ -867,20 +864,20 @@ export default function EditEvent() {
                         </div>
                     </div>
 
-                    <div className="flex gap-2 mt-6">
-                        <button
-                            type="button"
-                            onClick={generateBulkInstances}
-                            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg transition-colors border-2 border-dashed border-orange-400"
-                        >
-                            Create Sessions
-                        </button>
+                    <div className="w-full md:max-w-72 flex gap-2 mt-6 float-right">
                         <button
                             type="button"
                             onClick={() => setShowBulkCreate(false)}
                             className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors border-2 border-dashed border-gray-400"
                         >
                             Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={generateBulkInstances}
+                            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg transition-colors border-2 border-dashed border-orange-400"
+                        >
+                            Create
                         </button>
                     </div>
                 </div>

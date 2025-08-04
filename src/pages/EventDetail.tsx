@@ -79,7 +79,16 @@ export default function EventDetail() {
             <div className="flex-1">
               <h1 className="text-4xl font-bold text-slate-800 dark:text-white mb-4">{event.title}</h1>
               <div className="text-slate-600 dark:text-slate-300 mb-4 prose prose-lg dark:prose-invert max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(displayDescription) }} />
+                <div
+                  className="ProseMirror"
+                  style={{
+                    border: 0,
+                    padding: 0,
+                    background: "transparent",
+                    minHeight: 0
+                  }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(displayDescription) }}
+                />
                 {shouldShowExpandButton && (
                   <button
                     onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
@@ -110,7 +119,7 @@ export default function EventDetail() {
           {user?.role === 'admin' && (
             <Link
               to={`/edit-event/${event.id}`}
-              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-medium transition-colors border-2 border-dashed border-blue-400"
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-medium transition-colors border-2 border-dashed border-blue-400 text-nowrap"
             >
               <Edit className="w-4 h-4" />
               Edit Event
@@ -120,7 +129,7 @@ export default function EventDetail() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600 top-6 sticky z-50">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search Input */}
           <div className="flex-1">

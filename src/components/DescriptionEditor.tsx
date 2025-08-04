@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
+import Heading from '@tiptap/extension-heading';
 
 import {
     Bold,
@@ -13,6 +14,8 @@ import {
     ListOrdered,
     Quote,
     Code2,
+    Heading1,
+    Heading2,
     Undo,
     Redo,
     Link2,
@@ -124,7 +127,11 @@ function LinkToolbar({ editor, activeMarks, buttonStyle, isActive }: any) {
 export default function DescriptionEditor({ eventData, setEventData }: any) {
     const editor = useEditor({
         extensions: [
-            StarterKit,
+            StarterKit.configure({
+                heading: {
+                    levels: [1, 2],
+                },
+            }),
             Underline,
             Placeholder.configure({
                 placeholder: 'Describe the volunteer opportunity...',
@@ -161,7 +168,9 @@ export default function DescriptionEditor({ eventData, setEventData }: any) {
         orderedList: false,
         blockquote: false,
         codeBlock: false,
-        link: false
+        link: false,
+        heading1: false,
+        heading2: false
     });
 
     function updateActiveStates() {
@@ -174,9 +183,16 @@ export default function DescriptionEditor({ eventData, setEventData }: any) {
             orderedList: editor.isActive('orderedList'),
             blockquote: editor.isActive('blockquote'),
             codeBlock: editor.isActive('codeBlock'),
-            link: editor.isActive('link')
+            link: editor.isActive('link'),
+            heading1: editor.isActive('heading', { level: 1 }),
+            heading2: editor.isActive('heading', { level: 2 })
         });
     }
+
+    const headingLevels: { level: 1 | 2, label: any, activeMark: any }[] = [
+        { level: 1, label: <Heading1 className="w-4 h-4" />, activeMark: activeMarks.heading1 },
+        { level: 2, label: <Heading2 className="w-4 h-4" />, activeMark: activeMarks.heading2 }
+    ];
 
     useEffect(() => {
         if (!editor) return;
@@ -271,6 +287,18 @@ export default function DescriptionEditor({ eventData, setEventData }: any) {
                     <Code2 className="w-4 h-4" />
                 </button>
 
+                {headingLevels.map(({ level, label, activeMark }) => (
+                    <button
+                        key={level}
+                        type="button"
+                        onClick={() => editor.chain().focus().toggleHeading({ level: level }).run()}
+                        className={`${buttonStyle} ${isActive(activeMark)}`}
+                        title={`Heading ${level}`}
+                    >
+                        {label}
+                    </button>
+                ))}
+
                 <LinkToolbar
                     editor={editor}
                     activeMarks={activeMarks}
@@ -299,9 +327,7 @@ export default function DescriptionEditor({ eventData, setEventData }: any) {
                 </div>
             </div>
 
-            <div className="min-h-xl">
-                <EditorContent editor={editor} content={"test"} />
-            </div>
+            <EditorContent editor={editor} />
         </div>
     );
 }
