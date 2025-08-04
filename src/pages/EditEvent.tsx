@@ -46,14 +46,12 @@ interface ConfirmationModalProps {
 function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirmText, confirmColor }: ConfirmationModalProps) {
     return (
         <div
-            className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 transition-opacity duration-300 ${
-                isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-            }`}
+            className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                }`}
         >
             <div
-                className={`bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full border-4 border-dashed border-orange-200 dark:border-slate-600 transform transition-all duration-300 ${
-                    isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
-                }`}
+                className={`bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full border-4 border-dashed border-orange-200 dark:border-slate-600 transform transition-all duration-300 ${isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
+                    }`}
             >
                 <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4 font-caveat">
                     {title}
@@ -148,7 +146,7 @@ export default function EditEvent() {
                     description: event.description,
                     category: event.category,
                     tags: event.tags.join(', '),
-                    isRecurring: event.isRecurring
+                    isRecurring: event.isRecurring,
                     status: event.status,
                     chapters: event.chapters,
                     cities: event.cities
@@ -184,7 +182,7 @@ export default function EditEvent() {
                         description: parentEvent.description,
                         category: parentEvent.category,
                         tags: parentEvent.tags.join(', '),
-                        isRecurring: parentEvent.isRecurring
+                        isRecurring: parentEvent.isRecurring,
                         status: parentEvent.status,
                         chapters: parentEvent.chapters,
                         cities: parentEvent.cities
@@ -403,13 +401,12 @@ export default function EditEvent() {
                             </p>
                             {isEditing && (
                                 <div className="mt-2">
-                                    <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium capitalize ${
-                                        eventData.status === 'published' 
+                                    <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium capitalize ${eventData.status === 'published'
                                             ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
                                             : eventData.status === 'draft'
                                                 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
                                                 : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
-                                    }`}>
+                                        }`}>
                                         {eventData.status}
                                     </span>
                                 </div>
@@ -718,7 +715,7 @@ export default function EditEvent() {
                                 Archive
                             </button>
                         )}
-                        
+
                         {(!isEditing || eventData.status === 'draft') && (
                             <button
                                 onClick={(e) => handleSubmit(e, 'draft')}
@@ -728,7 +725,7 @@ export default function EditEvent() {
                                 Save Draft
                             </button>
                         )}
-                        
+
                         <button
                             onClick={(e) => handleSubmit(e, 'publish')}
                             className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg font-bold text-lg transition-colors border-2 border-dashed border-green-400"
@@ -739,7 +736,7 @@ export default function EditEvent() {
                     </div>
                 </form>
             </div>
-            
+
             <ConfirmationModal
                 isOpen={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
@@ -749,120 +746,124 @@ export default function EditEvent() {
                 confirmText="Delete Event"
                 confirmColor="bg-red-500 hover:bg-red-600 border-red-400"
             />
-            
+
             <div
                 className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 transition-opacity duration-300 ${showBulkCreate ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                     }`}
             >
                 <div
-                    className={`bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full border-4 border-dashed border-orange-200 dark:border-slate-600 transform transition-all duration-300 ${showBulkCreate ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
+                    className={`bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-3xl w-full max-h-full border-4 border-dashed border-orange-200 dark:border-slate-600 transform transition-all duration-300 overflow-y-auto ${showBulkCreate ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
                         }`}
                 >
                     <h4 className="text-lg font-semibold mb-4 font-caveat text-slate-800 dark:text-white">Bulk Create Sessions</h4>
 
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Start Date</label>
-                            <input
-                                type="date"
-                                value={bulkOptions.startDate}
-                                onChange={(e) => setBulkOptions({ ...bulkOptions, startDate: e.target.value })}
-                                className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">End Date</label>
-                            <input
-                                type="date"
-                                value={bulkOptions.endDate}
-                                onChange={(e) => setBulkOptions({ ...bulkOptions, endDate: e.target.value })}
-                                className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Frequency</label>
-                            <select
-                                value={bulkOptions.frequency}
-                                onChange={(e) => setBulkOptions({ ...bulkOptions, frequency: e.target.value as any })}
-                                className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                            >
-                                <option value="daily">Daily</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                            </select>
-                        </div>
-
-                        {bulkOptions.frequency === 'weekly' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-3">
                             <div>
-                                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Days of Week</label>
-                                <div className="grid grid-cols-7 gap-1">
-                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-                                        <button
-                                            key={day}
-                                            type="button"
-                                            onClick={() => {
-                                                const newDays = bulkOptions.daysOfWeek.includes(index)
-                                                    ? bulkOptions.daysOfWeek.filter(d => d !== index)
-                                                    : [...bulkOptions.daysOfWeek, index];
-                                                setBulkOptions({ ...bulkOptions, daysOfWeek: newDays });
-                                            }}
-                                            className={`p-2 text-xs rounded border-2 border-dashed transition-colors ${bulkOptions.daysOfWeek.includes(index)
-                                                ? 'bg-orange-500 text-white border-orange-400'
-                                                : 'bg-gray-100 dark:bg-slate-700 border-gray-300 dark:border-slate-600'
-                                                }`}
-                                        >
-                                            {day}
-                                        </button>
-                                    ))}
+                                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Start Date</label>
+                                <input
+                                    type="date"
+                                    value={bulkOptions.startDate}
+                                    onChange={(e) => setBulkOptions({ ...bulkOptions, startDate: e.target.value })}
+                                    className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">End Date</label>
+                                <input
+                                    type="date"
+                                    value={bulkOptions.endDate}
+                                    onChange={(e) => setBulkOptions({ ...bulkOptions, endDate: e.target.value })}
+                                    className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Frequency</label>
+                                <select
+                                    value={bulkOptions.frequency}
+                                    onChange={(e) => setBulkOptions({ ...bulkOptions, frequency: e.target.value as any })}
+                                    className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                                >
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
+
+                            {bulkOptions.frequency === 'weekly' && (
+                                <div>
+                                    <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Days of Week</label>
+                                    <div className="flex flex-wrap gap-1">
+                                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                                            <button
+                                                key={day}
+                                                type="button"
+                                                onClick={() => {
+                                                    const newDays = bulkOptions.daysOfWeek.includes(index)
+                                                        ? bulkOptions.daysOfWeek.filter(d => d !== index)
+                                                        : [...bulkOptions.daysOfWeek, index];
+                                                    setBulkOptions({ ...bulkOptions, daysOfWeek: newDays });
+                                                }}
+                                                className={`py-2 px-1 flex-1 text-xs rounded border-2 border-dashed transition-colors dark:text-white ${bulkOptions.daysOfWeek.includes(index)
+                                                    ? 'bg-orange-500 text-white border-orange-400'
+                                                    : 'bg-gray-100 dark:bg-slate-700 border-gray-300 dark:border-slate-600'
+                                                    }`}
+                                            >
+                                                {day}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Location</label>
+                                <input
+                                    type="text"
+                                    value={bulkOptions.location}
+                                    onChange={(e) => setBulkOptions({ ...bulkOptions, location: e.target.value })}
+                                    className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                                    placeholder="Session location"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Student Capacity</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={bulkOptions.studentCapacity}
+                                        onChange={(e) => setBulkOptions({ ...bulkOptions, studentCapacity: parseInt(e.target.value) || 10 })}
+                                        className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Parent Capacity</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={bulkOptions.parentCapacity}
+                                        onChange={(e) => setBulkOptions({ ...bulkOptions, parentCapacity: parseInt(e.target.value) || 5 })}
+                                        className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                                    />
                                 </div>
                             </div>
-                        )}
 
-                        <div>
-                            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Location</label>
-                            <input
-                                type="text"
-                                value={bulkOptions.location}
-                                onChange={(e) => setBulkOptions({ ...bulkOptions, location: e.target.value })}
-                                className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                                placeholder="Session location"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Student Capacity</label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={bulkOptions.studentCapacity}
-                                    onChange={(e) => setBulkOptions({ ...bulkOptions, studentCapacity: parseInt(e.target.value) || 10 })}
+                                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Session Notes (Optional)</label>
+                                <textarea
+                                    value={bulkOptions.description}
+                                    onChange={(e) => setBulkOptions({ ...bulkOptions, description: e.target.value })}
+                                    rows={3}
                                     className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                                    placeholder="Optional notes for all sessions"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Parent Capacity</label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={bulkOptions.parentCapacity}
-                                    onChange={(e) => setBulkOptions({ ...bulkOptions, parentCapacity: parseInt(e.target.value) || 5 })}
-                                    className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Session Notes (Optional)</label>
-                            <textarea
-                                value={bulkOptions.description}
-                                onChange={(e) => setBulkOptions({ ...bulkOptions, description: e.target.value })}
-                                rows={3}
-                                className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                                placeholder="Optional notes for all sessions"
-                            />
                         </div>
                     </div>
 

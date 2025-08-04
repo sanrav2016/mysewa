@@ -88,7 +88,7 @@ export default function Leaderboard() {
             <Trophy className="w-8 h-8 text-yellow-200" />
             <div>
               <p className="text-yellow-100 text-sm font-medium">Top Volunteer</p>
-              <p className="text-xl font-bold">{filteredUsers[0]?.name || 'N/A'}</p>
+              <p className="text-2xl font-bold">{filteredUsers[0]?.name || 'N/A'}</p>
             </div>
           </div>
         </div>

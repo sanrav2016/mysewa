@@ -140,9 +140,18 @@ export default function DescriptionEditor({ eventData, setEventData }: any) {
         ],
         content: eventData.description || '',
         onUpdate({ editor }) {
-            setEventData({ ...eventData, description: editor.getHTML() });
+            setEventData({
+                ...eventData,
+                description: editor.getHTML(),
+            });
         },
     });
+
+    useEffect(() => {
+        if (editor && eventData.description !== editor.getHTML()) {
+            editor.commands.setContent(eventData.description || '');
+        }
+    }, [eventData.description, editor]);
 
     const [activeMarks, setActiveMarks] = useState({
         bold: false,

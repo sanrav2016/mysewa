@@ -36,7 +36,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     // Auto remove after 5 seconds
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== newNotification.id));
-    }, 5000);
+    }, 6000);
   }, []);
 
   const removeNotification = useCallback((id: string) => {
@@ -80,17 +80,17 @@ function NotificationContainer() {
   const getNotificationColor = (type: Notification['type']) => {
     switch (type) {
       case 'signup':
-        return 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
+        return 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/90';
       case 'waitlist_moved':
-        return 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20';
+        return 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/90';
       case 'event_cancelled':
-        return 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
+        return 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/90';
       case 'event_updated':
-        return 'border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20';
+        return 'border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/90';
       case 'hours_awarded':
-        return 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20';
+        return 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/90';
       case 'reminder':
-        return 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20';
+        return 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/90';
       default:
         return 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700';
     }
@@ -101,9 +101,10 @@ function NotificationContainer() {
       {notifications.map((notification, index) => (
         <div
           key={notification.id}
-          className={`p-4 rounded-2xl shadow-lg border-4 border-dashed cursor-pointer transition-all duration-300 transform ${getNotificationColor(notification.type)}`}
+          className={`relative p-4 rounded-2xl shadow-lg border-4 border-dashed cursor-pointer transition-all duration-300 transform ${getNotificationColor(notification.type)}`}
           style={{
-            animation: `slideIn 0.3s ease-out ${index * 0.1}s both`,
+            animation: `slideIn 0.7s ${index * 0.1}s both`,
+            animationTimingFunction: `cubic-bezier(0.34, 1.56, 0.64, 1)`,
             transform: `translateY(${index * 4}px)`
           }}
           onClick={() => removeNotification(notification.id)}
@@ -135,20 +136,35 @@ function NotificationContainer() {
               <XCircle className="w-4 h-4" />
             </button>
           </div>
+          {/* Progress bar */}
+          <div className="absolute bottom-0 left-0 h-1 bg-slate-300 dark:bg-slate-600 w-full overflow-hidden rounded-b-md">
+            <div className="h-full bg-slate-500 dark:bg-slate-200 animate-progress" />
+          </div>
         </div>
       ))}
-      <style jsx>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(100%) translateY(0);
+      <style>{`
+          @keyframes slideIn {
+            from {
+              opacity: 0;
+              transform: translateX(100%) translateY(0);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0) translateY(0);
+            }
           }
-          to {
-            opacity: 1;
-            transform: translateX(0) translateY(0);
+          @keyframes progress {
+            from {
+              width: 100%;
+            }
+            to {
+              width: 0%;
+            }
           }
-        }
-      `}</style>
+          .animate-progress {
+            animation: progress 6s linear forwards;
+          }
+        `}</style>
     </div>
   );
 }

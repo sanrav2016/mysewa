@@ -102,7 +102,17 @@ export const mockEvents: Event[] = [
   {
     id: '2',
     title: 'Food Bank Sorting',
-    description: 'test',
+    description: `Please review the available slots below and click on the button to sign up. Thank you!
+
+Volunteers to help at the Radha Gopinath temple event 
+
+slot : leads + writeup - lead signing up this slot go for this event & should be able to do the writeup
+
+for Sunday 8 am - 10 am slot (Kitchen prasad preparation work)
+for Sunday 12.30-03:00 pm slot (prasad distribution and hall clean up post lunch)
+ 
+contact uttam ji - +1 (848)-359-4662
++1 (848) 252-9499 - Prabhu ji Radha Gopinath temple`,
     category: 'Community Service',
     createdBy: '3',
     createdAt: '2024-01-05',
@@ -118,7 +128,7 @@ export const mockEvents: Event[] = [
         startDate: '2025-08-05T14:00:00',
         endDate: '2025-08-05T17:00:00',
         location: '123 Central Food Bank, Edison, NJ 08820 District 7',
-        studentCapacity: 12,
+        studentCapacity: 1,
         parentCapacity: 1,
         studentSignups: ['4'],
         parentSignups: ['5'],
@@ -209,11 +219,11 @@ export const mockSignups: UserEventSignup[] = [
   },
   {
     id: '4',
-    userId: '5',
+    userId: '1',
     eventId: '2',
     instanceId: '2-1',
     signupDate: '2025-01-17',
-    status: 'cancelled'
+    status: 'confirmed'
   },
   {
     id: '5',

@@ -59,7 +59,7 @@ export default function Layout() {
       {/* Mobile menu button */}
       <button
         onClick={() => setSidebarOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-lg border-2 border-dashed border-orange-200 dark:border-slate-600"
+        className="lg:hidden fixed top-4 left-4 z-[100] p-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-lg border-2 border-dashed border-orange-200 dark:border-slate-600"
       >
         <Menu className="w-6 h-6 text-slate-800 dark:text-white" />
       </button>
@@ -77,7 +77,7 @@ export default function Layout() {
         <div
           className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
             } 
-      fixed inset-y-0 left-0 z-50 w-64 bg-white/80 dark:bg-slate-800/80 
+      fixed inset-y-0 left-0 z-[100] w-64 bg-white/80 dark:bg-slate-800/80 
       backdrop-blur-sm border-r-4 border-dashed border-orange-200 dark:border-slate-600 
       shadow-xl transition-transform duration-300 ease-in-out h-full
       lg:translate-x-0`}
@@ -85,16 +85,16 @@ export default function Layout() {
           {/* Close button for mobile */}
           <button
             onClick={closeSidebar}
-            className="lg:hidden absolute top-4 right-4 p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 z-[60]"
+            className="lg:hidden absolute top-4 right-4 p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 z-[150]"
           >
             <X className="w-6 h-6" />
           </button>
 
           <div className="flex flex-col h-full">
             {/* Top sticky header */}
-            <div className="flex items-center gap-3 p-6 sticky top-0 bg-white/80 dark:bg-slate-800/80 border-b-2 border-dashed border-orange-200 dark:border-slate-500 z-50">
-              <div className="w-16 h-12 flex items-center justify-center hover:scale-110 hover:rotate-3 transition-all duration-200">
-                <img src="/sewa_bird.svg" className="drop-shadow-[0_0_6px_rgba(255,85,51,1)]" />
+            <div className="flex items-center gap-3 p-6 sticky top-0 bg-white/80 dark:bg-slate-800/80 border-b-2 border-dashed border-orange-200 dark:border-slate-500 z-[100]">
+              <div className="w-16 h-16 py-2 px-1 flex items-center justify-center hover:scale-110 hover:rotate-3 transition-all duration-200">
+                <img src="/sewa_bird.svg" className="drop-shadow-[0_0_15px_rgba(255,255,255,0.25)]" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-slate-800 dark:text-white font-caveat">
@@ -124,6 +124,9 @@ export default function Layout() {
                   >
                     <Icon className="w-5 h-5" />
                     <span className="font-medium">{item.label}</span>
+                    {
+                      item.label == "Activity" && !isActive && <span className="bg-gradient-to-r from-orange-400 to-red-500 px-2 py-1 rounded-2xl text-white font-bold text-sm w-8 text-center" title="2 new notifications">2</span>
+                    }
                   </Link>
                 );
               })}

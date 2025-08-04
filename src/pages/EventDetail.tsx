@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, ArrowLeft, UserPlus, Tag, Search, Edit } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import DOMPurify from 'dompurify';
 import { useAuth } from '../context/AuthContext';
 import { mockEvents, mockSignups } from '../data/mockData';
 import { format, isAfter, isBefore } from 'date-fns';
@@ -49,7 +48,7 @@ export default function EventDetail() {
   }
 
   const shouldShowExpandButton = event.description.length > 300;
-  const displayDescription = shouldShowExpandButton && !isDescriptionExpanded 
+  const displayDescription = shouldShowExpandButton && !isDescriptionExpanded
     ? event.description.substring(0, 300) + '...'
     : event.description;
 
@@ -80,9 +79,7 @@ export default function EventDetail() {
             <div className="flex-1">
               <h1 className="text-4xl font-bold text-slate-800 dark:text-white mb-4">{event.title}</h1>
               <div className="text-slate-600 dark:text-slate-300 mb-4 prose prose-lg dark:prose-invert max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {displayDescription}
-                </ReactMarkdown>
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(displayDescription) }} />
                 {shouldShowExpandButton && (
                   <button
                     onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}

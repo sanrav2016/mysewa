@@ -85,7 +85,7 @@ export default function Chapter() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600 sticky top-6 z-50">
         <div className="flex flex-col gap-4">
           <div className="flex-1">
             <div className="relative">

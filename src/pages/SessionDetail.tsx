@@ -36,7 +36,10 @@ function ConfirmationModal({
                 className={`bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full border-4 border-dashed border-orange-200 dark:border-slate-600 transform transition-all duration-300 ${isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
                     }`}
             >
-                <form onSubmit={onConfirm}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    onConfirm();
+                }}>
                     <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4 font-caveat">
                         {title}
                     </h3>
@@ -391,7 +394,7 @@ export default function SessionDetail() {
                 break;
             case 'waitlist':
                 title = 'Join Waitlist';
-                children = `This session is full. Would you like to join the waitlist? If spots open up, you will automatically be registered for the session.`;
+                children = `Looks like this session is full. Would you like to join the waitlist? If spots open up, you will automatically be registered for the session.`;
                 confirmText = 'Join Waitlist';
                 confirmColor = 'bg-yellow-500 hover:bg-yellow-600 border-yellow-400';
                 break;
@@ -453,7 +456,6 @@ export default function SessionDetail() {
                     eventId: sessionData.eventId,
                     sessionId: sessionData.id
                 });
-                alert('Successfully signed up for the session!');
                 break;
             case 'waitlist':
                 addNotification({
@@ -464,13 +466,26 @@ export default function SessionDetail() {
                     eventId: sessionData.eventId,
                     sessionId: sessionData.id
                 });
-                alert('Added to waitlist!');
                 break;
             case 'cancel':
-                alert('Signup cancelled because of ' + cancelReason);
+                addNotification({
+                    type: 'event_cancelled',
+                    title: 'Signup cancelled',
+                    message: `Your signup for ${sessionData.eventTitle} was cancelled.`,
+                    eventTitle: sessionData.eventTitle,
+                    eventId: sessionData.eventId,
+                    sessionId: sessionData.id
+                });
                 break;
             case 'drop':
-                alert('Removed from waitlist.');
+                addNotification({
+                    type: 'event_updated',
+                    title: 'Removed from waitlist',
+                    message: `You have been removed from the waitlist for ${sessionData.eventTitle}`,
+                    eventTitle: sessionData.eventTitle,
+                    eventId: sessionData.eventId,
+                    sessionId: sessionData.id
+                });
                 break;
         }
         setModalState({ ...modalState, isOpen: false });

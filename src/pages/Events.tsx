@@ -13,6 +13,12 @@ export default function Events() {
 
   const categories = Array.from(new Set(mockEvents.map(e => e.category)));
 
+  const convert = (html: string) => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    return tempDiv.textContent || '';
+  }
+  
   // Filter and sort events
   const filteredEvents = mockEvents
     .filter(event => {
@@ -29,7 +35,7 @@ export default function Events() {
     .filter(event => {
       const matchesSearch = search === '' ||
         event.title.toLowerCase().includes(search.toLowerCase()) ||
-        event.description.toLowerCase().includes(search.toLowerCase()) ||
+        convert(event.description).toLowerCase().includes(search.toLowerCase()) ||
         event.category.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = categoryFilter === 'all' || event.category === categoryFilter;
       return matchesSearch && matchesCategory;
@@ -64,7 +70,7 @@ export default function Events() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600 sticky top-6 z-50">
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -138,7 +144,7 @@ export default function Events() {
                           {event.title}
                         </h3>
                         <p className="text-slate-600 dark:text-slate-300 text-sm mb-3 line-clamp-2">
-                          {event.description}
+                          {convert(event.description)}
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-lg text-sm font-medium">

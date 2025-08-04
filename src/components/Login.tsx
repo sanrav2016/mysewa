@@ -33,7 +33,7 @@ export default function Login() {
         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border-4 border-dashed border-orange-200 dark:border-slate-600">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg hover:scale-105 hover:rotate-3 transition-all duration-200">
-              <img src="/sewa_bird.svg" className="w-8 h-8 text-white" />
+              <img src="/sewa_bird_white.svg" className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-slate-800 dark:text-white font-caveat">
               MySewa
