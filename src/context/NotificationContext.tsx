@@ -1,20 +1,17 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Bell, CheckCircle, AlertCircle, XCircle, Clock, Users } from 'lucide-react';
+import { Bell, CheckCircle, AlertCircle, XCircle, Clock, Users, Info } from 'lucide-react';
 
 export interface Notification {
   id: string;
-  type: 'signup' | 'waitlist_moved' | 'event_cancelled' | 'event_updated' | 'hours_awarded' | 'reminder';
+  type: 'success' | 'info' | 'warning' | 'error';
   title: string;
   message: string;
   timestamp: string;
-  eventTitle?: string;
-  eventId?: string;
-  sessionId?: string;
 }
 
 interface NotificationContextType {
   notifications: Notification[];
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => void;
+  addNotification: (type: Notification['type'], title: string, message: string) => void;
   removeNotification: (id: string) => void;
   clearAll: () => void;
 }
@@ -24,9 +21,11 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp'>) => {
+  const addNotification = useCallback((type: Notification['type'], title: string, message: string) => {
     const newNotification: Notification = {
-      ...notification,
+      type,
+      title,
+      message,
       id: Date.now().toString(),
       timestamp: new Date().toISOString()
     };
@@ -60,18 +59,14 @@ function NotificationContainer() {
 
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
-      case 'signup':
+      case 'success':
         return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'waitlist_moved':
-        return <Users className="w-5 h-5 text-blue-600" />;
-      case 'event_cancelled':
+      case 'error':
         return <XCircle className="w-5 h-5 text-red-600" />;
-      case 'event_updated':
+      case 'warning':
         return <AlertCircle className="w-5 h-5 text-orange-600" />;
-      case 'hours_awarded':
-        return <Clock className="w-5 h-5 text-purple-600" />;
-      case 'reminder':
-        return <Bell className="w-5 h-5 text-yellow-600" />;
+      case 'info':
+        return <Info className="w-5 h-5 text-blue-600" />;
       default:
         return <Bell className="w-5 h-5 text-slate-600" />;
     }
@@ -79,18 +74,14 @@ function NotificationContainer() {
 
   const getNotificationColor = (type: Notification['type']) => {
     switch (type) {
-      case 'signup':
+      case 'success':
         return 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/90';
-      case 'waitlist_moved':
+      case 'info':
         return 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/90';
-      case 'event_cancelled':
+      case 'error':
         return 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/90';
-      case 'event_updated':
+      case 'warning':
         return 'border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/90';
-      case 'hours_awarded':
-        return 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/90';
-      case 'reminder':
-        return 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/90';
       default:
         return 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700';
     }
@@ -120,11 +111,6 @@ function NotificationContainer() {
               <p className="text-slate-600 dark:text-slate-300 text-sm">
                 {notification.message}
               </p>
-              {notification.eventTitle && (
-                <span className="inline-block bg-white/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 px-2 py-1 rounded-lg text-xs font-medium mt-2">
-                  {notification.eventTitle}
-                </span>
-              )}
             </div>
             <button
               onClick={(e) => {

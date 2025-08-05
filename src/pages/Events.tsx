@@ -75,8 +75,8 @@ export default function Events() {
       </div>
 
       {/* Filters */}
-      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600 sticky w-full top-0 z-50 transition-all ${stickyControls ? "absolute rounded-none border-0 border-b-4 top-0 left-0 z-50 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)]" : ""}`}>
-        <div className="flex flex-col lg:flex-row gap-4">
+      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600 sticky w-full top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
+        <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
@@ -90,11 +90,11 @@ export default function Events() {
             </div>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-2 md:gap-4">
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "h-11 px-2" : "px-4 py-3"}`}
+              className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
             >
               <option value="all">All Categories</option>
               {categories.map(category => (
@@ -105,7 +105,7 @@ export default function Events() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'date' | 'title' | 'category')}
-              className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "h-11 px-2" : "px-4 py-3"}`}
+              className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
             >
               <option value="date">Sort by Date</option>
               <option value="title">Sort by Title</option>

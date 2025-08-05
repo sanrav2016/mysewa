@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Trophy,
@@ -26,6 +27,19 @@ export default function Leaderboard() {
   const [search, setSearch] = useState('');
   const [chapterFilter, setChapterFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
+  const [stickyControls, setStickyControls] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const controlsElement = document.getElementById("controls");
+      if (controlsElement) {
+        setStickyControls(window.scrollY > controlsElement.offsetHeight);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const chapters = useMemo(() => {
     const unique = new Set(mockUsers.map(u => u.chapter).filter(Boolean));
@@ -184,7 +198,7 @@ export default function Leaderboard() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600 sticky top-6 z-50">
+      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600 sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
         <div className="space-y-4">
           {/* View Type Selector */}
           <div className="flex gap-2">
@@ -192,7 +206,7 @@ export default function Leaderboard() {
               <button
                 key={type}
                 onClick={() => setViewType(type)}
-                className={`px-4 py-2 rounded-xl font-medium transition-colors capitalize ${viewType === type
+                className={`rounded-xl font-medium transition-colors capitalize ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"} ${viewType === type
                     ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
                     : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
                   }`}
@@ -220,7 +234,7 @@ export default function Leaderboard() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortBy)}
-                className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
               >
                 <option value="hours">Sort by Hours</option>
                 <option value="events">Sort by Events</option>
@@ -231,7 +245,7 @@ export default function Leaderboard() {
                   <select
                     value={filterBy}
                     onChange={(e) => setFilterBy(e.target.value as FilterBy)}
-                    className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                    className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
                   >
                     <option value="all">All Roles</option>
                     <option value="student">Students</option>
@@ -242,7 +256,7 @@ export default function Leaderboard() {
                   <select
                     value={chapterFilter}
                     onChange={(e) => setChapterFilter(e.target.value)}
-                    className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                    className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
                   >
                     <option value="all">All Chapters</option>
                     {chapters.map(chapter => (
@@ -253,7 +267,7 @@ export default function Leaderboard() {
                   <select
                     value={cityFilter}
                     onChange={(e) => setCityFilter(e.target.value)}
-                    className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                    className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
                   >
                     <option value="all">All Cities</option>
                     {cities.map(city => (

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Mail, Phone, Calendar, Clock, Users, Award, GraduationCap, Handshake, MapPin, Building } from 'lucide-react';
 import { mockUsers, mockSignups } from '../data/mockData';
@@ -9,6 +10,19 @@ export default function Chapter() {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [chapterFilter, setChapterFilter] = useState<string>('all');
   const [cityFilter, setCityFilter] = useState<string>('all');
+  const [stickyControls, setStickyControls] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const controlsElement = document.getElementById("controls");
+      if (controlsElement) {
+        setStickyControls(window.scrollY > controlsElement.offsetHeight);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const filteredMembers = mockUsers.filter(member => {
     const matchesSearch = search === '' ||
@@ -85,7 +99,7 @@ export default function Chapter() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600 sticky top-6 z-50">
+      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600 sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
         <div className="flex flex-col gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -100,12 +114,12 @@ export default function Chapter() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 md:gap-3">
             {(['all', 'student', 'parent', 'admin'] as const).map((role) => (
               <button
                 key={role}
                 onClick={() => setRoleFilter(role)}
-                className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 ${roleFilter === role
+                className={`rounded-xl font-medium transition-all duration-200 transform hover:scale-105 ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"} ${roleFilter === role
                   ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg rotate-1'
                   : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
                   }`}
@@ -117,7 +131,7 @@ export default function Chapter() {
             <select
               value={chapterFilter}
               onChange={(e) => setChapterFilter(e.target.value)}
-              className="px-4 py-2 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+              className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"}`}
             >
               <option value="all">All Chapters</option>
               {chapters.map(chapter => (
@@ -128,7 +142,7 @@ export default function Chapter() {
             <select
               value={cityFilter}
               onChange={(e) => setCityFilter(e.target.value)}
-              className="px-4 py-2 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+              className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"}`}
             >
               <option value="all">All Cities</option>
               {cities.map(city => (

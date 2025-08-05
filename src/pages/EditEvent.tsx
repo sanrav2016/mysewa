@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, Plus, Trash2, Save, Copy, Repeat, ArrowLeft, Edit, Eye, EyeOff, Archive, FileText, Trash, ChevronDown, AlertTriangle, User, Hash } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Calendar, MapPin, Users, Clock, Edit, ChevronDown, Schedule } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNotification } from '../context/NotificationContext';
 import { mockEvents, chapters, cities } from '../data/mockData';

@@ -23,6 +23,13 @@ export interface EventInstance {
   studentSignups: string[]; // user IDs
   parentSignups: string[]; // user IDs
   description?: string;
+  restrictions?: {
+    prerequisiteEvents?: string[]; // event IDs
+    minAge?: number;
+    maxAge?: number;
+    minHours?: number;
+    maxHours?: number;
+  };
 }
 
 export interface Event {

@@ -379,8 +379,8 @@ export default function Calendar() {
       </div>
 
       {/* Controls */}
-      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-4 transition-all p-6 border-orange-200 dark:border-slate-600 w-full sticky ${stickyControls ? "absolute rounded-none border-0 border-b-4 top-0 left-0 z-50 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)]" : ""}`}>
-        <div className={stickyControls ? "space-y-2" : "space-y-4"}>
+      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-4 transition-all border-orange-200 dark:border-slate-600 w-full sticky top-0 z-50 ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
+        <div className={stickyControls ? "space-y-3" : "space-y-4"}>
           {/* Date Navigation + View Type */}
           <div className="flex flex-col lg:flex-row justify-between gap-4 items-start lg:items-center">
             {/* Navigation */}
@@ -440,7 +440,7 @@ export default function Calendar() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className={`px-4 py-2 border border-orange-300 dark:border-slate-600 rounded-xl bg-white/70 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none`}
+                className={`border border-orange-300 dark:border-slate-600 rounded-xl bg-white/70 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"}`}
               >
                 <option value="all">All Categories</option>
                 {categories.map((category) => (
@@ -452,13 +452,13 @@ export default function Calendar() {
 
               <button
                 onClick={() => setShowUserEventsOnly(!showUserEventsOnly)}
-                className={`hover:scale-105 transition-all flex items-center gap-2 px-4 py-2 rounded-xl font-medium border ${showUserEventsOnly
+                className={`hover:scale-105 transition-all flex items-center gap-2 rounded-xl font-medium border ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"} ${showUserEventsOnly
                   ? 'bg-blue-500 text-white border-blue-400'
                   : 'bg-blue-100 dark:bg-slate-700 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-slate-600'
                   }`}
               >
                 <User className="w-4 h-4" />
-                <span className="hidden lg:inline">My Events</span>
+                <span className={stickyControls ? "hidden" : "hidden lg:inline"}>My Events</span>
               </button>
             </div>
           </div>
