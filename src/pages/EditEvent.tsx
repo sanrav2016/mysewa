@@ -352,24 +352,15 @@ export default function EditEvent() {
 
     const handleSchedulePublish = () => {
         if (!scheduleDate || !scheduleTime) {
-            alert('Please select both date and time for scheduled publish');
+            addNotification('error', 'Missing Information', 'Please select both date and time for scheduled publishing.');
             return;
         }
         
         const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
-        console.log('Scheduled publish for:', scheduledDateTime);
-        alert(`Event scheduled to publish on ${scheduledDateTime.toLocaleString()}`);
+        addNotification('success', 'Event Scheduled', `Event "${eventData.title}" has been scheduled to publish on ${scheduledDateTime.toLocaleString()}.`);
         setShowScheduleModal(false);
         setShowPublishMenu(false);
-        
-        // Navigate back
-        if (isEditingSession) {
-            navigate(`/sessions/${sessionId}`);
-        } else if (isEditing) {
-            navigate(`/events/${eventId}`);
-        } else {
-            navigate('/events');
-        }
+        navigate('/events');
     };
 
     const handleDelete = () => {
