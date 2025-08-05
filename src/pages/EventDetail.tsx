@@ -129,7 +129,7 @@ export default function EventDetail() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600 top-6 sticky z-50">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600 sticky top-0 z-50">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search Input */}
           <div className="flex-1">
@@ -146,19 +146,19 @@ export default function EventDetail() {
           </div>
 
           {/* Date Range Picker */}
-          <div className="flex gap-2 items-center">
+          <div className="flex flex-col sm:flex-row gap-2 items-center">
             <input
               type="date"
               value={afterDate}
               onChange={(e) => setAfterDate(e.target.value)}
-              className="px-3 py-2 border-2 border-orange-200 dark:border-slate-600 rounded-xl bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none focus:border-orange-400 dark:focus:border-orange-400 h-full"
+              className="px-3 py-2 border-2 border-orange-200 dark:border-slate-600 rounded-xl bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none focus:border-orange-400 dark:focus:border-orange-400"
             />
-            <span className="text-slate-600 dark:text-slate-300 font-medium">to</span>
+            <span className="text-slate-600 dark:text-slate-300 font-medium text-center">to</span>
             <input
               type="date"
               value={beforeDate}
               onChange={(e) => setBeforeDate(e.target.value)}
-              className="px-3 py-2 border-2 border-orange-200 dark:border-slate-600 rounded-xl bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none focus:border-orange-400 dark:focus:border-orange-400 h-full"
+              className="px-3 py-2 border-2 border-orange-200 dark:border-slate-600 rounded-xl bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none focus:border-orange-400 dark:focus:border-orange-400"
             />
           </div>
         </div>

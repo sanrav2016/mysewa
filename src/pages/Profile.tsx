@@ -45,7 +45,7 @@ export default function Profile() {
     <div className="space-y-6 p-4 lg:p-8">
       {/* Profile Header */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
-        <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
 
           {/* Avatar + Details side-by-side even on mobile */}
           <div className="flex items-start gap-4 sm:gap-6">
@@ -73,7 +73,7 @@ export default function Profile() {
               <div className="text-sm grid grid-cols-1 md:grid-cols-2 gap-1 gap-x-6">
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                   <Mail className="w-4 h-4 shrink-0" />
-                  {user.email}
+                  <span className="truncate">{user.email}</span>
                 </div>
                 {user.phone && (
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
@@ -99,10 +99,10 @@ export default function Profile() {
 
           {/* Edit Profile Button */}
           {isOwnProfile && (
-            <div className="self-end md:self-start">
+            <div className="self-end lg:self-start">
               <Link
                 to="/settings"
-                className="mt-4 md:mt-0 flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-4 py-2 rounded-xl hover:bg-orange-200 dark:hover:bg-orange-900/50 transform hover:rotate-2 hover:scale-105 transition-all whitespace-nowrap"
+                className="mt-4 lg:mt-0 flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-4 py-2 rounded-xl hover:bg-orange-200 dark:hover:bg-orange-900/50 transform hover:rotate-2 hover:scale-105 transition-all whitespace-nowrap"
               >
                 <Settings className="w-4 h-4 shrink-0" />
                 Edit Profile

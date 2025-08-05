@@ -736,6 +736,113 @@ export default function EditEvent() {
                                             />
                                         </div>
                                     </div>
+
+                                    {/* Restrictions Section */}
+                                    <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-xl border-2 border-dashed border-red-200 dark:border-red-800">
+                                        <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Session Restrictions</h4>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {/* Prerequisite Events */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                    Prerequisite Events
+                                                </label>
+                                                <select
+                                                    multiple
+                                                    value={instance.restrictions?.prerequisiteEvents || []}
+                                                    onChange={(e) => {
+                                                        const values = Array.from(e.target.selectedOptions, option => option.value);
+                                                        updateInstance(index, 'restrictions', {
+                                                            ...instance.restrictions,
+                                                            prerequisiteEvents: values
+                                                        });
+                                                    }}
+                                                    className="w-full px-4 py-2 border-2 border-dashed border-red-200 dark:border-red-600 rounded-lg focus:border-red-400 dark:focus:border-red-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                                                >
+                                                    {mockEvents.filter(e => e.id !== eventData.id).map(event => (
+                                                        <option key={event.id} value={event.id}>{event.title}</option>
+                                                    ))}
+                                                </select>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                                    Users must have attended these events to sign up
+                                                </p>
+                                            </div>
+
+                                            {/* Age Restrictions */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                        Min Age
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        value={instance.restrictions?.minAge || ''}
+                                                        onChange={(e) => updateInstance(index, 'restrictions', {
+                                                            ...instance.restrictions,
+                                                            minAge: e.target.value ? parseInt(e.target.value) : undefined
+                                                        })}
+                                                        className="w-full px-4 py-2 border-2 border-dashed border-red-200 dark:border-red-600 rounded-lg focus:border-red-400 dark:focus:border-red-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                                                        placeholder="No limit"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                        Max Age
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        value={instance.restrictions?.maxAge || ''}
+                                                        onChange={(e) => updateInstance(index, 'restrictions', {
+                                                            ...instance.restrictions,
+                                                            maxAge: e.target.value ? parseInt(e.target.value) : undefined
+                                                        })}
+                                                        className="w-full px-4 py-2 border-2 border-dashed border-red-200 dark:border-red-600 rounded-lg focus:border-red-400 dark:focus:border-red-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                                                        placeholder="No limit"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Hours Restrictions */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                        Min Hours
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={instance.restrictions?.minHours || ''}
+                                                        onChange={(e) => updateInstance(index, 'restrictions', {
+                                                            ...instance.restrictions,
+                                                            minHours: e.target.value ? parseInt(e.target.value) : undefined
+                                                        })}
+                                                        className="w-full px-4 py-2 border-2 border-dashed border-red-200 dark:border-red-600 rounded-lg focus:border-red-400 dark:focus:border-red-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                                                        placeholder="No limit"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                        Max Hours
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={instance.restrictions?.maxHours || ''}
+                                                        onChange={(e) => updateInstance(index, 'restrictions', {
+                                                            ...instance.restrictions,
+                                                            maxHours: e.target.value ? parseInt(e.target.value) : undefined
+                                                        })}
+                                                        className="w-full px-4 py-2 border-2 border-dashed border-red-200 dark:border-red-600 rounded-lg focus:border-red-400 dark:focus:border-red-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                                                        placeholder="No limit"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
                         </div>

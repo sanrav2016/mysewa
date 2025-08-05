@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { User, Lock, Bell, Palette, Save, Eye, EyeOff, Download, Wrench } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useNotification } from '../context/NotificationContext';
 import { chapters, cities } from '../data/mockData';
 
 export default function Settings() {
   const { user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const { addNotification } = useNotification();
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'tools' | 'appearance'>('profile');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);

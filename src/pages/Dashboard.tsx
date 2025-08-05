@@ -132,9 +132,9 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Left Column - My Events & Notifications */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="xl:col-span-2 space-y-6">
           {/* My Upcoming Events */}
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
             <div className="flex items-center justify-between mb-6">
@@ -174,14 +174,14 @@ export default function Dashboard() {
                         <h3 className="font-semibold text-slate-800 dark:text-white mb-1">
                           {event!.title}
                         </h3>
-                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300 min-w-0">
-                          <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-slate-600 dark:text-slate-300 min-w-0">
+                          <div className="flex items-center gap-1">
                             <Calendar className="w-4 h-4 shrink-0" />
-                            {format(new Date(instance!.startDate), 'MMM d, h:mm a')}
+                            <span className="truncate">{format(new Date(instance!.startDate), 'MMM d, h:mm a')}</span>
                           </div>
-                          <div className="flex flex-1 items-center gap-1 min-w-0">
+                          <div className="flex items-center gap-1 min-w-0">
                             <MapPin className="w-4 h-4 shrink-0" />
-                            <div className="truncate overflow-hidden whitespace-nowrap">{instance!.location}</div>
+                            <span className="truncate">{instance!.location}</span>
                           </div>
                         </div>
                         <div className="mt-2">
@@ -231,23 +231,23 @@ export default function Dashboard() {
                         <h3 className="font-semibold text-slate-800 dark:text-white mb-1">
                           {event.eventTitle}
                         </h3>
-                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300 min-w-0">
-                          <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-slate-600 dark:text-slate-300 min-w-0">
+                          <div className="flex items-center gap-1">
                             <Calendar className="w-4 h-4 shrink-0" />
-                            {format(new Date(event.startDate), 'MMM d, h:mm a')}
+                            <span className="truncate">{format(new Date(event.startDate), 'MMM d, h:mm a')}</span>
                           </div>
-                          <div className="flex flex-1 items-center gap-1 min-w-0">
+                          <div className="flex items-center gap-1 min-w-0">
                             <MapPin className="w-4 h-4 shrink-0" />
-                            <div className="truncate overflow-hidden whitespace-nowrap">{event.location}</div>
+                            <span className="truncate">{event.location}</span>
                           </div>
                         </div>
-                        <div className="flex gap-2 mt-2 items-center">
+                        <div className="flex flex-wrap gap-2 mt-2 items-center">
                           <span className="inline-block bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-lg text-xs font-medium">
                             {event.category}
                           </span>
-                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                          <span className="text-xs text-slate-600 dark:text-slate-300">
                             {event.studentSignups.length + event.parentSignups.length}/{event.studentCapacity + event.parentCapacity} spots
-                          </p>
+                          </span>
                         </div>
                       </div>
                     </div>

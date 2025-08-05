@@ -80,7 +80,7 @@ export default function History() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600 sticky top-0 z-50">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -95,7 +95,7 @@ export default function History() {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {(['all', 'confirmed', 'waitlist', 'cancelled'] as const).map((status) => (
               <button
                 key={status}
@@ -137,18 +137,18 @@ export default function History() {
                       <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
                         {event!.title}
                       </h3>
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 dark:text-slate-300 mb-3">
+                      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-4 text-sm text-slate-600 dark:text-slate-300 mb-3">
                         <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          {format(new Date(instance!.startDate), 'MMM d, yyyy h:mm a')}
+                          <Calendar className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{format(new Date(instance!.startDate), 'MMM d, yyyy h:mm a')}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          {instance!.location}
+                          <MapPin className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{instance!.location}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          Signed up {format(new Date(signup.signupDate), 'MMM d, yyyy')}
+                          <Clock className="w-4 h-4 shrink-0" />
+                          <span className="truncate">Signed up {format(new Date(signup.signupDate), 'MMM d, yyyy')}</span>
                         </div>
                         {signup.attendance && (
                           <div className="flex items-center gap-1">
@@ -166,7 +166,7 @@ export default function History() {
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-lg text-sm font-medium">
                           {event!.category}
                         </span>

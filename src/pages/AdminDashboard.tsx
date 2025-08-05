@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Calendar, Plus, Edit, Trash2, Search, Filter, UserPlus, Building, MapPin, Mail, Phone } from 'lucide-react';
+import { useNotification } from '../context/NotificationContext';
 import { mockUsers, mockEvents, chapters, cities } from '../data/mockData';
 import { format } from 'date-fns';
 
 export default function AdminDashboard() {
+  const { addNotification } = useNotification();
   const [activeTab, setActiveTab] = useState<'users' | 'events'>('users');
   const [userSearch, setUserSearch] = useState('');
   const [eventSearch, setEventSearch] = useState('');

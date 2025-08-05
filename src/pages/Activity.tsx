@@ -218,8 +218,9 @@ export default function Activity() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600 flex justify-between gap-2">
-        <div className="flex gap-2">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
+        <div className="flex flex-col sm:flex-row justify-between gap-4">
+          <div className="flex flex-wrap gap-2">
           {(['all', 'unread', 'today'] as const).map((filterType) => (
             <button
               key={filterType}
@@ -237,15 +238,15 @@ export default function Activity() {
               )}
             </button>
           ))}
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllAsRead}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap"
+            >
+              Mark All Read
+            </button>
+          )}
         </div>
-        {unreadCount > 0 && (
-          <button
-            onClick={markAllAsRead}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-          >
-            Mark All Read
-          </button>
-        )}
       </div>
 
       {/* Notifications */}
