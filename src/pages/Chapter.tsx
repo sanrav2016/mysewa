@@ -30,7 +30,7 @@ export default function Chapter() {
   const chapters = Array.from(new Set(mockUsers.map(u => u.chapter).filter(Boolean)));
   const cities = Array.from(new Set(mockUsers.map(u => u.city).filter(Boolean)));
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 lg:p-8">
       {/* Header */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
         <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 transform">

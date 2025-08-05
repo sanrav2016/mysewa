@@ -1,47 +1,104 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Medal, Award, Clock, Calendar, Users, Search, Filter } from 'lucide-react';
+import {
+  Trophy,
+  Medal,
+  Award,
+  Clock,
+  Calendar,
+  Users,
+  Search,
+  Filter,
+  Building,
+  MapPin
+} from 'lucide-react';
 import { mockUsers, mockSignups } from '../data/mockData';
 
+// Types
 type SortBy = 'hours' | 'events';
 type FilterBy = 'all' | 'student' | 'parent' | 'admin';
+type ViewType = 'individual' | 'chapter' | 'city';
 
 export default function Leaderboard() {
+  const [viewType, setViewType] = useState<ViewType>('individual');
   const [sortBy, setSortBy] = useState<SortBy>('hours');
   const [filterBy, setFilterBy] = useState<FilterBy>('all');
   const [search, setSearch] = useState('');
+  const [chapterFilter, setChapterFilter] = useState('all');
+  const [cityFilter, setCityFilter] = useState('all');
 
-  // Calculate user stats
-  const userStats = mockUsers.map(user => {
-    const userSignups = mockSignups.filter(signup => signup.userId === user.id);
-    const completedEvents = userSignups.filter(signup => signup.status === 'confirmed').length;
-    const totalHours = userSignups.reduce((sum, signup) => sum + (signup.hoursEarned || 0), 0);
+  const chapters = useMemo(() => {
+    const unique = new Set(mockUsers.map(u => u.chapter).filter(Boolean));
+    return Array.from(unique) as string[];
+  }, []);
 
-    return {
-      ...user,
-      completedEvents,
-      calculatedHours: totalHours
-    };
-  });
+  const cities = useMemo(() => {
+    const unique = new Set(mockUsers.map(u => u.city).filter(Boolean));
+    return Array.from(unique) as string[];
+  }, []);
 
-  // Filter and sort users
-  const filteredUsers = userStats
-    .filter(user => {
-      const matchesRole = filterBy === 'all' || user.role === filterBy;
-      const matchesSearch = search === '' ||
-        user.name.toLowerCase().includes(search.toLowerCase()) ||
-        user.email.toLowerCase().includes(search.toLowerCase()) ||
-        (user.chapter && user.chapter.toLowerCase().includes(search.toLowerCase())) ||
-        (user.city && user.city.toLowerCase().includes(search.toLowerCase()));
-      return matchesRole && matchesSearch;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'hours') {
-        return b.calculatedHours - a.calculatedHours;
-      } else {
-        return b.completedEvents - a.completedEvents;
-      }
+  const userStats = useMemo(() => {
+    return mockUsers.map(user => {
+      const userSignups = mockSignups.filter(signup => signup.userId === user.id);
+      const completedEvents = userSignups.filter(signup => signup.status === 'confirmed').length;
+      const totalHours = userSignups.reduce((sum, signup) => sum + (signup.hoursEarned || 0), 0);
+
+      return {
+        ...user,
+        completedEvents,
+        calculatedHours: totalHours
+      };
     });
+  }, []);
+
+  const filteredUsers = useMemo(() => {
+    return userStats
+      .filter(user => {
+        const matchesRole = filterBy === 'all' || user.role === filterBy;
+        const matchesChapter = chapterFilter === 'all' || user.chapter === chapterFilter;
+        const matchesCity = cityFilter === 'all' || user.city === cityFilter;
+        const matchesSearch =
+          search === '' ||
+          user.name.toLowerCase().includes(search.toLowerCase()) ||
+          user.email.toLowerCase().includes(search.toLowerCase()) ||
+          (user.chapter && user.chapter.toLowerCase().includes(search.toLowerCase())) ||
+          (user.city && user.city.toLowerCase().includes(search.toLowerCase()));
+        return matchesRole && matchesChapter && matchesCity && matchesSearch;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'hours') return b.calculatedHours - a.calculatedHours;
+        return b.completedEvents - a.completedEvents;
+      });
+  }, [userStats, filterBy, chapterFilter, cityFilter, search, sortBy]);
+
+  const locationStats = useMemo(() => {
+    const groups: Record<string, any> = {};
+
+    filteredUsers.forEach(user => {
+      const key = viewType === 'chapter' ? user.chapter : user.city;
+      if (!key) return;
+      if (!groups[key]) {
+        groups[key] = {
+          name: key,
+          memberCount: 0,
+          totalHours: 0,
+          totalEvents: 0
+        };
+      }
+      groups[key].memberCount++;
+      groups[key].totalHours += user.calculatedHours;
+      groups[key].totalEvents += user.completedEvents;
+    });
+
+    return Object.values(groups).map(loc => ({
+      ...loc,
+      avgHours: Math.round(loc.totalHours / loc.memberCount)
+    })).sort((a, b) => {
+      return sortBy === 'hours' ? b.totalHours - a.totalHours : b.totalEvents - a.totalEvents;
+    });
+  }, [filteredUsers, viewType, sortBy]);
+
+  const displayData = viewType === 'individual' ? filteredUsers : locationStats;
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -70,7 +127,7 @@ export default function Leaderboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 lg:p-8">
       {/* Header */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
         <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
@@ -89,7 +146,7 @@ export default function Leaderboard() {
             <div>
               <p className="text-yellow-100 text-sm font-medium">Top Volunteer</p>
               <p className="text-2xl font-bold">
-                {viewType === 'individual' 
+                {viewType === 'individual'
                   ? (filteredUsers[0]?.name || 'N/A')
                   : (locationStats[0]?.name || 'N/A')
                 }
@@ -135,11 +192,10 @@ export default function Leaderboard() {
               <button
                 key={type}
                 onClick={() => setViewType(type)}
-                className={`px-4 py-2 rounded-xl font-medium transition-colors capitalize ${
-                  viewType === type
+                className={`px-4 py-2 rounded-xl font-medium transition-colors capitalize ${viewType === type
                     ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
                     : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
-                }`}
+                  }`}
               >
                 {type}
               </button>
@@ -147,66 +203,66 @@ export default function Leaderboard() {
           </div>
 
           <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder={`Search ${viewType}...`}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-              />
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder={`Search ${viewType}...`}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="flex gap-4">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-            >
-              <option value="hours">Sort by Hours</option>
-              <option value="events">Sort by Events</option>
-            </select>
+            <div className="flex gap-4">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortBy)}
+                className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+              >
+                <option value="hours">Sort by Hours</option>
+                <option value="events">Sort by Events</option>
+              </select>
 
-            {viewType === 'individual' && (
-              <>
-                <select
-                  value={filterBy}
-                  onChange={(e) => setFilterBy(e.target.value as FilterBy)}
-                  className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                >
-                  <option value="all">All Roles</option>
-                  <option value="student">Students</option>
-                  <option value="parent">Parents</option>
-                  <option value="admin">Admins</option>
-                </select>
+              {viewType === 'individual' && (
+                <>
+                  <select
+                    value={filterBy}
+                    onChange={(e) => setFilterBy(e.target.value as FilterBy)}
+                    className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                  >
+                    <option value="all">All Roles</option>
+                    <option value="student">Students</option>
+                    <option value="parent">Parents</option>
+                    <option value="admin">Admins</option>
+                  </select>
 
-                <select
-                  value={chapterFilter}
-                  onChange={(e) => setChapterFilter(e.target.value)}
-                  className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                >
-                  <option value="all">All Chapters</option>
-                  {chapters.map(chapter => (
-                    <option key={chapter} value={chapter}>{chapter}</option>
-                  ))}
-                </select>
+                  <select
+                    value={chapterFilter}
+                    onChange={(e) => setChapterFilter(e.target.value)}
+                    className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                  >
+                    <option value="all">All Chapters</option>
+                    {chapters.map(chapter => (
+                      <option key={chapter} value={chapter}>{chapter}</option>
+                    ))}
+                  </select>
 
-                <select
-                  value={cityFilter}
-                  onChange={(e) => setCityFilter(e.target.value)}
-                  className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                >
-                  <option value="all">All Cities</option>
-                  {cities.map(city => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
-              </>
-            )}
-          </div>
+                  <select
+                    value={cityFilter}
+                    onChange={(e) => setCityFilter(e.target.value)}
+                    className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                  >
+                    <option value="all">All Cities</option>
+                    {cities.map(city => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -223,73 +279,72 @@ export default function Leaderboard() {
           ) : (
             displayData.map((item, index) => {
               const rank = index + 1;
-              
+
               if (viewType === 'individual') {
                 const user = item as any;
                 return (
-                <Link
-                  key={user.id}
-                  to={`/profile/${user.id}`}
-                  className="block"
-                >
-                  <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-orange-200 dark:border-slate-500 hover:bg-orange-50 dark:hover:bg-slate-700 transition-all hover:scale-102 group">
-                    <div className="flex items-center gap-4">
-                      {getRankIcon(rank)}
-                      <div className={`w-12 h-12 bg-gradient-to-br ${getRankColor(rank)} rounded-xl flex items-center justify-center text-white font-bold transform transition-all group-hover:rotate-6`}>
-                        {user.name.charAt(0)}
-                      </div>
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-white">
-                          {user.name}
-                        </h3>
-                        <span className={`px-3 py-1 rounded-lg text-sm font-medium capitalize ${
-                          user.role === 'admin'
-                            ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                            : user.role === 'parent'
-                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
-                              : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                        }`}>
-                          {user.role}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
-                        <span>{user.email}</span>
-                        {user.chapter && (
-                          <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
-                            {user.chapter}
-                          </span>
-                        )}
-                        {user.city && (
-                          <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
-                            {user.city}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="flex items-center gap-6">
-                        <div className="text-center">
-                          <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-                            <Clock className="w-4 h-4" />
-                            <span className="text-2xl font-bold">{user.calculatedHours}</span>
-                          </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">hours</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                            <Calendar className="w-4 h-4" />
-                            <span className="text-2xl font-bold">{user.completedEvents}</span>
-                          </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">events</p>
+                  <Link
+                    key={user.id}
+                    to={`/profile/${user.id}`}
+                    className="block"
+                  >
+                    <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-orange-200 dark:border-slate-500 hover:bg-orange-50 dark:hover:bg-slate-700 transition-all hover:scale-102 group">
+                      <div className="flex items-center gap-4">
+                        {getRankIcon(rank)}
+                        <div className={`w-12 h-12 bg-gradient-to-br ${getRankColor(rank)} rounded-xl flex items-center justify-center text-white font-bold transform transition-all group-hover:rotate-6`}>
+                          {user.name.charAt(0)}
                         </div>
                       </div>
+
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                            {user.name}
+                          </h3>
+                          <span className={`px-3 py-1 rounded-lg text-sm font-medium capitalize ${user.role === 'admin'
+                              ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                              : user.role === 'parent'
+                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
+                                : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                            }`}>
+                            {user.role}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
+                          <span>{user.email}</span>
+                          {user.chapter && (
+                            <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
+                              {user.chapter}
+                            </span>
+                          )}
+                          {user.city && (
+                            <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
+                              {user.city}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="flex items-center gap-6">
+                          <div className="text-center">
+                            <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                              <Clock className="w-4 h-4" />
+                              <span className="text-2xl font-bold">{user.calculatedHours}</span>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">hours</p>
+                          </div>
+                          <div className="text-center">
+                            <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                              <Calendar className="w-4 h-4" />
+                              <span className="text-2xl font-bold">{user.completedEvents}</span>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">events</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
                 );
               } else {
                 const location = item as any;
@@ -303,19 +358,19 @@ export default function Leaderboard() {
                       <div className={`w-12 h-12 bg-gradient-to-br ${getRankColor(rank)} rounded-xl flex items-center justify-center text-white font-bold transform transition-all group-hover:rotate-6`}>
                         {viewType === 'chapter' ? <Building className="w-6 h-6" /> : <MapPin className="w-6 h-6" />}
                       </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">
-                        {location.name}
-                      </h3>
-                      <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
-                        <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
-                          {location.memberCount} members
-                        </span>
-                        <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
-                          {location.avgHours} avg hours
-                        </span>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">
+                          {location.name}
+                        </h3>
+                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
+                          <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
+                            {location.memberCount} members
+                          </span>
+                          <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
+                            {location.avgHours} avg hours
+                          </span>
+                        </div>
                       </div>
-                    </div>
                     </div>
                     <div className="text-right">
                       <div className="flex items-center gap-6">

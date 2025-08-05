@@ -10,6 +10,11 @@ export default function Events() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'category'>('date');
+  const [stickyControls, setStickyControls] = useState(false);
+
+  window.addEventListener('scroll', () => {
+    setStickyControls(window.scrollY > document.getElementById("controls")!.offsetHeight);
+  })
 
   const categories = Array.from(new Set(mockEvents.map(e => e.category)));
 
@@ -18,7 +23,7 @@ export default function Events() {
     tempDiv.innerHTML = html;
     return tempDiv.textContent || '';
   }
-  
+
   // Filter and sort events
   const filteredEvents = mockEvents
     .filter(event => {
@@ -58,7 +63,7 @@ export default function Events() {
     });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative p-4 lg:p-8">
       {/* Header */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
         <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 transform">
@@ -70,7 +75,7 @@ export default function Events() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600 sticky top-6 z-50">
+      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600 sticky w-full top-0 z-50 transition-all ${stickyControls ? "absolute rounded-none border-0 border-b-4 top-0 left-0 z-50 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)]" : ""}`}>
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -80,7 +85,7 @@ export default function Events() {
                 placeholder="Search events..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform"
+                className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "py-2" : "py-3"}`}
               />
             </div>
           </div>
@@ -89,7 +94,7 @@ export default function Events() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform"
+              className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "h-11 px-2" : "px-4 py-3"}`}
             >
               <option value="all">All Categories</option>
               {categories.map(category => (
@@ -100,7 +105,7 @@ export default function Events() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'date' | 'title' | 'category')}
-              className="px-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform"
+              className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "h-11 px-2" : "px-4 py-3"}`}
             >
               <option value="date">Sort by Date</option>
               <option value="title">Sort by Title</option>
@@ -156,11 +161,10 @@ export default function Events() {
                             </span>
                           )}
                           {user?.role === 'admin' && event.status !== 'published' && (
-                            <span className={`px-3 py-1 rounded-lg text-sm font-medium capitalize ${
-                              event.status === 'draft' 
+                            <span className={`px-3 py-1 rounded-lg text-sm font-medium capitalize ${event.status === 'draft'
                                 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
                                 : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
-                            }`}>
+                              }`}>
                               {event.status}
                             </span>
                           )}

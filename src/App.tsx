@@ -16,6 +16,7 @@ import EventDetail from './pages/EventDetail';
 import SessionDetail from './pages/SessionDetail';
 import EditEvent from './pages/EditEvent';
 import Chapter from './pages/Chapter';
+import AdminDashboard from './pages/AdminDashboard';
 import Leaderboard from './pages/Leaderboard';
 import Settings from './pages/Settings';
 

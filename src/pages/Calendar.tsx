@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Search, Filter, MapPin, Users, Calendar as CalendarIcon, User } from 'lucide-react';
 import { mockEvents, mockSignups } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +13,11 @@ export default function Calendar() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewType, setViewType] = useState<ViewType>('month');
   const [showUserEventsOnly, setShowUserEventsOnly] = useState(false);
+  const [stickyControls, setStickyControls] = useState(false);
+
+  window.addEventListener('scroll', () => {
+    setStickyControls(window.scrollY > document.getElementById("controls")!.offsetHeight);
+  })
 
   const categories = Array.from(new Set(mockEvents.map(e => e.category)));
 
@@ -362,7 +367,7 @@ export default function Calendar() {
   };
 
   return (
-    <div className="space-y-6 relative">
+    <div className="space-y-6 relative p-4 lg:p-8">
       {/* Header */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
         <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 font-caveat">
@@ -374,8 +379,8 @@ export default function Calendar() {
       </div>
 
       {/* Controls */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600 sticky top-6 z-50">
-        <div className="space-y-4">
+      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-4 transition-all p-6 border-orange-200 dark:border-slate-600 w-full sticky ${stickyControls ? "absolute rounded-none border-0 border-b-4 top-0 left-0 z-50 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)]" : ""}`}>
+        <div className={stickyControls ? "space-y-2" : "space-y-4"}>
           {/* Date Navigation + View Type */}
           <div className="flex flex-col lg:flex-row justify-between gap-4 items-start lg:items-center">
             {/* Navigation */}
@@ -425,7 +430,7 @@ export default function Calendar() {
                   placeholder="Search events..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform"
+                  className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "py-2" : "py-3"}`}
                 />
               </div>
             </div>
@@ -435,7 +440,7 @@ export default function Calendar() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-4 py-2 border border-orange-300 dark:border-slate-600 rounded-xl bg-white/70 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none"
+                className={`px-4 py-2 border border-orange-300 dark:border-slate-600 rounded-xl bg-white/70 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none`}
               >
                 <option value="all">All Categories</option>
                 {categories.map((category) => (

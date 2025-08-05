@@ -74,7 +74,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-6 relative">
+    <div className="space-y-6 relative p-4 lg:p-8">
       {/* Header */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-dashed border-orange-200 dark:border-slate-600 transition-all duration-200">
         <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 font-caveat">

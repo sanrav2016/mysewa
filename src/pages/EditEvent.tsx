@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, Plus, Trash2, Save, Copy, Repeat, ArrowLeft, Edit, Eye, EyeOff, Archive, FileText, Trash, ChevronDown, AlertTriangle, User, Hash } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useNotification } from '../context/NotificationContext';
 import { mockEvents, chapters, cities } from '../data/mockData';
 import '@uiw/react-md-editor/markdown-editor.css';
 import '@uiw/react-markdown-preview/markdown.css';
@@ -86,6 +87,7 @@ export default function EditEvent() {
     const { user } = useAuth();
     const { isDark } = useTheme();
     const navigate = useNavigate();
+    const { addNotification } = useNotification();
 
     const isEditing = !!eventId;
     const isEditingSession = !!sessionId;
@@ -407,7 +409,7 @@ export default function EditEvent() {
 
     return (
         <>
-            <div className="space-y-6">
+            <div className="space-y-6 p-4 lg:p-8">
                 {(eventId || sessionId) &&
                     <Link
                         to={backLink}

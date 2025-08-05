@@ -63,7 +63,7 @@ export default function EventDetail() {
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 lg:p-8">
       <Link to="/events" className="inline-flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transform hover:scale-105 transition-all duration-200">
         <ArrowLeft className="w-4 h-4" />
         Back to Events

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Clock, Filter, Search, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { mockEvents, mockSignups } from '../data/mockData';
@@ -23,10 +24,10 @@ export default function History() {
   // Apply filters
   const filteredSignups = userSignups.filter(({ signup, event }) => {
     const matchesFilter = filter === 'all' || signup.status === filter;
-    const matchesSearch = search === '' || 
+    const matchesSearch = search === '' ||
       event!.title.toLowerCase().includes(search.toLowerCase()) ||
       event!.category.toLowerCase().includes(search.toLowerCase());
-    
+
     return matchesFilter && matchesSearch;
   });
 
@@ -34,7 +35,7 @@ export default function History() {
   const confirmedEvents = userSignups.filter(({ signup }) => signup.status === 'confirmed').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 lg:p-8">
       {/* Header */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
         <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
@@ -93,17 +94,16 @@ export default function History() {
               />
             </div>
           </div>
-          
+
           <div className="flex gap-2">
             {(['all', 'confirmed', 'waitlist', 'cancelled'] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-xl font-medium transition-colors ${
-                  filter === status
-                    ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
-                    : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
-                }`}
+                className={`px-4 py-2 rounded-xl font-medium transition-colors ${filter === status
+                  ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
+                  : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
+                  }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
@@ -122,9 +122,10 @@ export default function History() {
           </div>
         ) : (
           filteredSignups.map(({ signup, event, instance }, index) => (
-            <div
+            <Link
+              to={`/sessions/${instance!.id}`}
               key={signup.id}
-              className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600"
+              className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600 block transition-all hover:scale-102"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -169,20 +170,19 @@ export default function History() {
                         <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-lg text-sm font-medium">
                           {event!.category}
                         </span>
-                        <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                          signup.status === 'confirmed' 
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                            : signup.status === 'waitlist'
+                        <span className={`px-3 py-1 rounded-lg text-sm font-medium ${signup.status === 'confirmed'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                          : signup.status === 'waitlist'
                             ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
                             : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                        }`}>
-                          {signup.status}
+                          }`}>
+                          {signup.status.charAt(0).toUpperCase() + signup.status.slice(1)}
                         </span>
                       </div>
                     </div>
                   </div>
                 </div>
-                
+
                 {signup.hoursEarned && (
                   <div className="text-right">
                     <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-4 py-2 rounded-xl font-bold text-lg">
@@ -191,10 +191,10 @@ export default function History() {
                   </div>
                 )}
               </div>
-            </div>
+            </Link>
           ))
         )}
       </div>
-    </div>
+    </div >
   );
 }

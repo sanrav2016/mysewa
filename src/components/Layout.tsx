@@ -14,6 +14,7 @@ import {
   Sun,
   Moon,
   Heart,
+  Shield,
   Menu,
   X,
   Trophy
@@ -60,7 +61,7 @@ export default function Layout() {
       {/* Mobile menu button */}
       <button
         onClick={() => setSidebarOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-[100] p-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-lg border-2 border-dashed border-orange-200 dark:border-slate-600"
+        className="lg:hidden fixed bottom-4 left-4 z-[100] p-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-lg border-2 border-dashed border-orange-200 dark:border-slate-600"
       >
         <Menu className="w-6 h-6 text-slate-800 dark:text-white" />
       </button>
@@ -68,7 +69,7 @@ export default function Layout() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[100]"
           onClick={closeSidebar}
         />
       )}
@@ -167,7 +168,7 @@ export default function Layout() {
         </div>
 
         {/* Main content */}
-        <div className="flex-1 p-4 lg:p-8 transition-all duration-300 lg:ml-64">
+        <div className="flex-1 transition-all duration-300 lg:ml-64">
           <Outlet />
         </div>
       </div>

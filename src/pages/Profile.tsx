@@ -10,7 +10,7 @@ export default function Profile() {
   const { user: currentUser } = useAuth();
 
   // If userId is provided, show that user's profile, otherwise show current user's profile
-  const user = userId ? mockUsers.find(u => u.id === userId) : currentUser;
+  const user = userId ? mockUsers.find(u => u.id === userId) : currentUser && mockUsers.find(u => u.id === currentUser.id);
   const isOwnProfile = !userId || userId === currentUser?.id;
 
   if (!user) {
@@ -42,7 +42,7 @@ export default function Profile() {
     .sort((a, b) => new Date(b.instance!.startDate).getTime() - new Date(a.instance!.startDate).getTime());
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 lg:p-8">
       {/* Profile Header */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
@@ -65,34 +65,34 @@ export default function Profile() {
                   {user.role}
                 </span>
                 <div className="flex items-center gap-1 text-sm">
-                  <Calendar className="w-4 h-4" />
+                  <Calendar className="w-4 h-4 shrink-0" />
                   <span>Joined {format(new Date(user.joinedDate), 'MMM yyyy')}</span>
                 </div>
               </div>
 
-              <div className="space-y-1 text-sm">
+              <div className="text-sm grid grid-cols-1 md:grid-cols-2 gap-1 gap-x-6">
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                  <Mail className="w-4 h-4" />
+                  <Mail className="w-4 h-4 shrink-0" />
                   {user.email}
                 </div>
                 {user.phone && (
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                    <Phone className="w-4 h-4" />
+                    <Phone className="w-4 h-4 shrink-0" />
                     {user.phone}
                   </div>
                 )}
-              {user.chapter && (
-                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                  <Building className="w-4 h-4" />
-                  {user.chapter}
-                </div>
-              )}
-              {user.city && (
-                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                  <MapPin className="w-4 h-4" />
-                  {user.city}
-                </div>
-              )}
+                {user.chapter && (
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                    <Building className="w-4 h-4 shrink-0" />
+                    {user.chapter}
+                  </div>
+                )}
+                {user.city && (
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                    <MapPin className="w-4 h-4 shrink-0" />
+                    {user.city}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -102,9 +102,9 @@ export default function Profile() {
             <div className="self-end md:self-start">
               <Link
                 to="/settings"
-                className="mt-4 md:mt-0 flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-4 py-2 rounded-xl hover:bg-orange-200 dark:hover:bg-orange-900/50 transform hover:rotate-2 hover:scale-105 transition-all"
+                className="mt-4 md:mt-0 flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-4 py-2 rounded-xl hover:bg-orange-200 dark:hover:bg-orange-900/50 transform hover:rotate-2 hover:scale-105 transition-all whitespace-nowrap"
               >
-                <Settings className="w-4 h-4" />
+                <Settings className="w-4 h-4 shrink-0" />
                 Edit Profile
               </Link>
             </div>
@@ -164,11 +164,11 @@ export default function Profile() {
                     </h3>
                     <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
+                        <Calendar className="w-4 h-4 shrink-0" />
                         {format(new Date(instance!.startDate), 'MMM d, h:mm a')}
                       </div>
                       <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
+                        <MapPin className="w-4 h-4 shrink-0" />
                         {instance!.location}
                       </div>
                     </div>
@@ -211,18 +211,17 @@ export default function Profile() {
                     </h3>
                     <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
+                        <Calendar className="w-4 h-4 shrink-0" />
                         {format(new Date(instance!.startDate), 'MMM d, yyyy')}
                         {signup.attendance && (
-                          <span className={`ml-2 text-xs ${
-                            signup.attendance === 'present' ? 'text-green-600' : 'text-red-600'
-                          }`}>
+                          <span className={`ml-2 text-xs ${signup.attendance === 'present' ? 'text-green-600' : 'text-red-600'
+                            }`}>
                             ({signup.attendance})
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
+                        <MapPin className="w-4 h-4 shrink-0" />
                         {instance!.location}
                       </div>
                     </div>

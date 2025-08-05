@@ -77,7 +77,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 lg:p-8">
       {/* Header */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
         <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 transform">
@@ -139,7 +139,7 @@ export default function Dashboard() {
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-slate-800 dark:text-white transform">
-                My Upcoming Events
+                My Agenda
               </h2>
               <Link
                 to="/history"
@@ -152,12 +152,12 @@ export default function Dashboard() {
             <div className="space-y-4">
               {userUpcomingEvents.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-slate-600 dark:text-slate-300 text-lg mb-4">
+                  <p className="text-slate-600 dark:text-slate-300 text-md mb-4">
                     No upcoming events signed up for
                   </p>
                   <Link
                     to="/events"
-                    className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 hover:rotate-1"
                   >
                     Browse Events <ArrowRight className="w-4 h-4" />
                   </Link>
@@ -174,23 +174,22 @@ export default function Dashboard() {
                         <h3 className="font-semibold text-slate-800 dark:text-white mb-1">
                           {event!.title}
                         </h3>
-                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
+                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300 min-w-0">
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Calendar className="w-4 h-4 shrink-0" />
                             {format(new Date(instance!.startDate), 'MMM d, h:mm a')}
                           </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            {instance!.location}
+                          <div className="flex flex-1 items-center gap-1 min-w-0">
+                            <MapPin className="w-4 h-4 shrink-0" />
+                            <div className="truncate overflow-hidden whitespace-nowrap">{instance!.location}</div>
                           </div>
                         </div>
                         <div className="mt-2">
-                          <span className={`inline-block px-2 py-1 rounded-lg text-xs font-medium ${
-                            signup.status === 'confirmed' 
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                              : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
-                          }`}>
-                            {signup.status}
+                          <span className={`inline-block px-2 py-1 rounded-lg text-xs font-medium ${signup.status === 'confirmed'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                            : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+                            }`}>
+                            {signup.status.charAt(0).toUpperCase() + signup.status.slice(1)}
                           </span>
                         </div>
                       </div>
@@ -232,26 +231,24 @@ export default function Dashboard() {
                         <h3 className="font-semibold text-slate-800 dark:text-white mb-1">
                           {event.eventTitle}
                         </h3>
-                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
+                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300 min-w-0">
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Calendar className="w-4 h-4 shrink-0" />
                             {format(new Date(event.startDate), 'MMM d, h:mm a')}
                           </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            {event.location}
+                          <div className="flex flex-1 items-center gap-1 min-w-0">
+                            <MapPin className="w-4 h-4 shrink-0" />
+                            <div className="truncate overflow-hidden whitespace-nowrap">{event.location}</div>
                           </div>
                         </div>
-                        <div className="mt-2">
+                        <div className="flex gap-2 mt-2 items-center">
                           <span className="inline-block bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-lg text-xs font-medium">
                             {event.category}
                           </span>
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            {event.studentSignups.length + event.parentSignups.length}/{event.studentCapacity + event.parentCapacity} spots
+                          </p>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-slate-600 dark:text-slate-300">
-                          {event.studentSignups.length + event.parentSignups.length}/{event.studentCapacity + event.parentCapacity} spots
-                        </p>
                       </div>
                     </div>
                   </div>
@@ -266,11 +263,11 @@ export default function Dashboard() {
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-slate-800 dark:text-white transform">
-                Recent Activity
+                Recent
               </h2>
               <Link
                 to="/activity"
-                className="flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transform hover:scale-105 transition-all duration-200"
+                className="flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transform hover:scale-105 transition-all duration-200 whitespace-nowrap"
               >
                 View All <ArrowRight className="w-4 h-4" />
               </Link>
@@ -345,38 +342,6 @@ export default function Dashboard() {
             </div>
           </div>
         </Link>
-      </div>
-              <div
-                key={event.id}
-                className={`bg-gradient-to-r from-orange-50 to-red-50 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl border-2 border-orange-200 dark:border-slate-500 transform hover:scale-102 cursor-pointer transition-transform duration-200`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-slate-800 dark:text-white mb-1">
-                      {event.eventTitle}
-                    </h3>
-                    <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {format(new Date(event.startDate), 'MMM d, h:mm a')}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
-                        {event.location}
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <span className="inline-block bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200 px-2 py-1 rounded-lg text-xs font-medium">
-                        {event.category}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-slate-600 dark:text-slate-300">
-                      {event.studentSignups.length + event.parentSignups.length}/{event.studentCapacity + event.parentCapacity} spots
-                    </p>
-                  </div>
-                </div>
       </div>
     </div>
   );
