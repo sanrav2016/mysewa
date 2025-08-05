@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Trash, Repeat, FileText, Copy, Archive, Calendar, MapPin, Users, Clock, Edit, ChevronDown, Ruler as Schedule } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Trash, Repeat, FileText, Copy, Archive, Calendar, MapPin, Users, Clock, Edit, ChevronDown, Ruler as Schedule, Eye } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
@@ -100,7 +100,8 @@ export default function EditEvent() {
         isRecurring: false,
         status: 'draft' as 'draft' | 'published' | 'archived',
         chapters: [] as string[],
-        cities: [] as string[]
+        cities: [] as string[],
+        scheduledPublishDate: null
     });
 
     const [instances, setInstances] = useState<EventInstance[]>([
@@ -159,13 +160,21 @@ export default function EditEvent() {
                     isRecurring: event.isRecurring,
                     status: event.status,
                     chapters: event.chapters,
-                    cities: event.cities
+                    cities: event.cities,
+                    scheduledPublishDate: null
                 });
                 setInstances(event.instances.map(instance => (
                     {
                         ...instance,
                         startDate: instance.startDate.slice(0, 16), // Format for datetime-local
-                        endDate: instance.endDate.slice(0, 16)
+                        endDate: instance.endDate.slice(0, 16),
+                        restrictions: instance.restrictions || {
+                            prerequisiteEvents: [],
+                            minAge: null,
+                            maxAge: null,
+                            minHours: null,
+                            maxHours: null
+                        }
                     }
                 )));
             }
@@ -195,7 +204,8 @@ export default function EditEvent() {
                         isRecurring: parentEvent.isRecurring,
                         status: parentEvent.status,
                         chapters: parentEvent.chapters,
-                        cities: parentEvent.cities
+                        cities: parentEvent.cities,
+                        scheduledPublishDate: null
                     });
                     setInstances([{
                         id: sessionData.id,
@@ -227,7 +237,13 @@ export default function EditEvent() {
                     studentCapacity: bulkOptions.studentCapacity,
                     parentCapacity: bulkOptions.parentCapacity,
                     description: bulkOptions.description,
-                    restrictions: {}
+                    restrictions: {
+                        prerequisiteEvents: [],
+                        minAge: null,
+                        maxAge: null,
+                        minHours: null,
+                        maxHours: null
+                    }
                 });
                 current.setDate(current.getDate() + 1);
             } else if (bulkOptions.frequency === 'weekly') {
@@ -239,7 +255,13 @@ export default function EditEvent() {
                         studentCapacity: bulkOptions.studentCapacity,
                         parentCapacity: bulkOptions.parentCapacity,
                         description: bulkOptions.description,
-                        restrictions: {}
+                        restrictions: {
+                            prerequisiteEvents: [],
+                            minAge: null,
+                            maxAge: null,
+                            minHours: null,
+                            maxHours: null
+                        }
                     });
                 }
                 current.setDate(current.getDate() + 1);
@@ -251,7 +273,13 @@ export default function EditEvent() {
                     studentCapacity: bulkOptions.studentCapacity,
                     parentCapacity: bulkOptions.parentCapacity,
                     description: bulkOptions.description,
-                    restrictions: {}
+                    restrictions: {
+                        prerequisiteEvents: [],
+                        minAge: null,
+                        maxAge: null,
+                        minHours: null,
+                        maxHours: null
+                    }
                 });
                 current.setMonth(current.getMonth() + 1);
             }
@@ -285,7 +313,13 @@ export default function EditEvent() {
             studentCapacity: 10,
             parentCapacity: 5,
             description: '',
-            restrictions: {}
+            restrictions: {
+                prerequisiteEvents: [],
+                minAge: null,
+                maxAge: null,
+                minHours: null,
+                maxHours: null
+            }
         }]);
     };
 
@@ -303,11 +337,55 @@ export default function EditEvent() {
         }
     };
 
-    const updateInstance = (index: number, field: keyof EventInstance, value: string | number) => {
+    const updateInstance = (index: number, field: keyof EventInstance, value: string | number | any) => {
         const updated = instances.map((instance, i) =>
             i === index ? { ...instance, [field]: value } : instance
         );
         setInstances(updated);
+    };
+
+    const handlePublishNow = () => {
+        const updatedEvent = { ...eventData, status: 'published' };
+        setEventData(updatedEvent);
+        console.log('Publishing event now:', updatedEvent);
+        addNotification('success', 'Event Published', 'Your event has been published successfully!');
+        setShowPublishMenu(false);
+    };
+
+    const handleSchedulePublish = () => {
+        if (!scheduleDate || !scheduleTime) {
+            addNotification('error', 'Missing Information', 'Please select both date and time for scheduling.');
+            return;
+        }
+        
+        const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
+        const updatedEvent = { 
+            ...eventData, 
+            status: 'scheduled',
+            scheduledPublishDate: scheduledDateTime.toISOString()
+        };
+        setEventData(updatedEvent);
+        console.log('Scheduling event for:', scheduledDateTime);
+        addNotification('success', 'Event Scheduled', `Your event will be published on ${scheduledDateTime.toLocaleDateString()} at ${scheduledDateTime.toLocaleTimeString()}`);
+        setShowScheduleModal(false);
+        setShowPublishMenu(false);
+    };
+
+    const handleArchive = () => {
+        if (confirm('Are you sure you want to archive this event? It will no longer be visible to users.')) {
+            const updatedEvent = { ...eventData, status: 'archived' };
+            setEventData(updatedEvent);
+            console.log('Archiving event:', updatedEvent);
+            addNotification('info', 'Event Archived', 'Your event has been archived successfully.');
+        }
+    };
+
+    const handleDelete = () => {
+        if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+            console.log('Deleting event:', eventData);
+            addNotification('success', 'Event Deleted', 'Your event has been deleted successfully.');
+            navigate('/events');
+        }
     };
 
     const handleSubmit = (e: React.FormEvent, action: 'publish' | 'draft' | 'archive') => {
@@ -315,12 +393,12 @@ export default function EditEvent() {
 
         // Validation
         if (!eventData.title || !eventData.description || !eventData.category) {
-            alert('Please fill in all required fields');
+            addNotification('error', 'Missing Information', 'Please fill in all required fields');
             return;
         }
 
         if (instances.some(instance => !instance.startDate || !instance.endDate || !instance.location)) {
-            alert('Please complete all event instances');
+            addNotification('error', 'No Sessions', 'Please complete all event instances');
             return;
         }
 
@@ -349,32 +427,19 @@ export default function EditEvent() {
         }
     };
 
-    const handleSchedulePublish = () => {
-        if (!scheduleDate || !scheduleTime) {
-            alert('Please select both date and time for scheduled publish');
+    const handleSave = () => {
+        if (!eventData.title || !eventData.description || !eventData.category) {
+            addNotification('error', 'Missing Information', 'Please fill in all required fields');
             return;
         }
-        
-        const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
-        console.log('Scheduled publish for:', scheduledDateTime);
-        alert(`Event scheduled to publish on ${scheduledDateTime.toLocaleString()}`);
-        setShowScheduleModal(false);
-        setShowPublishMenu(false);
-        
-        // Navigate back
-        if (isEditingSession) {
-            navigate(`/sessions/${sessionId}`);
-        } else if (isEditing) {
-            navigate(`/events/${eventId}`);
-        } else {
-            navigate('/events');
-        }
-    };
 
-    const handleDelete = () => {
-        setShowDeleteModal(false);
-        alert('Event deleted successfully!');
-        navigate('/events');
+        if (instances.length === 0) {
+            addNotification('error', 'No Sessions', 'Please add at least one session');
+            return;
+        }
+
+        console.log('Saving event:', eventData);
+        addNotification('success', 'Event Saved', 'Your event has been saved as a draft.');
     };
 
     const toggleChapter = (chapter: string) => {
@@ -741,34 +806,84 @@ export default function EditEvent() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-wrap justify-end gap-3">
-                        {isEditing && eventData.status !== 'archived' && (
-                            <button
-                                onClick={(e) => handleSubmit(e, 'archive')}
-                                className="flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-medium transition-colors border-2 border-dashed border-slate-400"
-                            >
-                                <Archive className="w-4 h-4" />
-                                Archive
-                            </button>
-                        )}
+                    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600 relative">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div className="text-sm text-slate-600 dark:text-slate-300">
+                                Status: <span className={`font-medium capitalize ${
+                                    eventData.status === 'published' ? 'text-green-600' :
+                                    eventData.status === 'archived' ? 'text-red-600' :
+                                    eventData.status === 'scheduled' ? 'text-blue-600' :
+                                    'text-yellow-600'
+                                }`}>
+                                    {eventData.status}
+                                </span>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-3 relative">
+                                {/* Save Draft Button */}
+                                {eventData.status !== 'published' && (
+                                    <button
+                                        onClick={handleSave}
+                                        className="flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-xl font-medium transition-colors border-2 border-dashed border-slate-400"
+                                    >
+                                        <Save className="w-4 h-4" />
+                                        Save Draft
+                                    </button>
+                                )}
 
-                        {(!isEditing || eventData.status === 'draft') && (
-                            <button
-                                onClick={(e) => handleSubmit(e, 'draft')}
-                                className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-medium transition-colors border-2 border-dashed border-yellow-400"
-                            >
-                                <FileText className="w-4 h-4" />
-                                Save Draft
-                            </button>
-                        )}
+                                {/* Publish Dropdown */}
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowPublishMenu(!showPublishMenu)}
+                                        className="flex items-center gap-2 bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all duration-200 hover:scale-105 border-2 border-dashed border-green-300"
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                        Publish
+                                        <ChevronDown className={`w-4 h-4 transition-transform ${showPublishMenu ? 'rotate-180' : ''}`} />
+                                    </button>
 
-                        <button
-                            onClick={(e) => handleSubmit(e, 'publish')}
-                            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg font-bold text-lg transition-colors border-2 border-dashed border-green-400"
-                        >
-                            <Save className="w-5 h-5" />
-                            {isEditing ? 'Publish Changes' : 'Publish Event'}
-                        </button>
+                                    {showPublishMenu && (
+                                        <div className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-800 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-xl shadow-lg z-50 min-w-48">
+                                            <button
+                                                onClick={handlePublishNow}
+                                                className="w-full text-left px-4 py-3 hover:bg-green-50 dark:hover:bg-green-900/20 text-slate-800 dark:text-white flex items-center gap-2 rounded-t-xl"
+                                            >
+                                                <Eye className="w-4 h-4 text-green-600" />
+                                                Publish Now
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowScheduleModal(true);
+                                                    setShowPublishMenu(false);
+                                                }}
+                                                className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-800 dark:text-white flex items-center gap-2 border-t border-dashed border-slate-200 dark:border-slate-600 rounded-b-xl"
+                                            >
+                                                <Clock className="w-4 h-4 text-blue-600" />
+                                                Schedule Publish
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Archive Button */}
+                                <button
+                                    onClick={handleArchive}
+                                    className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-xl font-medium transition-colors border-2 border-dashed border-yellow-400"
+                                >
+                                    <Archive className="w-4 h-4" />
+                                    Archive
+                                </button>
+
+                                {/* Delete Button */}
+                                <button
+                                    onClick={handleDelete}
+                                    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-medium transition-colors border-2 border-dashed border-red-400"
+                                >
+                                    <Trash className="w-4 h-4" />
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
