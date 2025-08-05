@@ -4,7 +4,6 @@ import { ArrowLeft, Save, Plus, Trash2, Calendar, MapPin, Users, Clock, Edit, Ch
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
-import { useNotification } from '../context/NotificationContext';
 import { mockEvents, chapters, cities } from '../data/mockData';
 import '@uiw/react-md-editor/markdown-editor.css';
 import '@uiw/react-markdown-preview/markdown.css';
