@@ -448,44 +448,32 @@ export default function SessionDetail() {
         // Mock action based on type
         switch (modalState.type) {
             case 'signup':
-                addNotification({
-                    type: 'signup',
-                    title: 'Successfully signed up!',
-                    message: `You have been confirmed for ${sessionData.eventTitle}`,
-                    eventTitle: sessionData.eventTitle,
-                    eventId: sessionData.eventId,
-                    sessionId: sessionData.id
-                });
+                addNotification(
+                    'success',
+                    'Successfully signed up!',
+                    `You have been confirmed for ${sessionData.eventTitle}`
+                );
                 break;
             case 'waitlist':
-                addNotification({
-                    type: 'waitlist_moved',
-                    title: 'Added to waitlist',
-                    message: `You have been added to the waitlist for ${sessionData.eventTitle}`,
-                    eventTitle: sessionData.eventTitle,
-                    eventId: sessionData.eventId,
-                    sessionId: sessionData.id
-                });
+                addNotification(
+                    'success',
+                    'Added to waitlist',
+                    `You have been added to the waitlist for ${sessionData.eventTitle}`
+                );
                 break;
             case 'cancel':
-                addNotification({
-                    type: 'event_cancelled',
-                    title: 'Signup cancelled',
-                    message: `Your signup for ${sessionData.eventTitle} was cancelled.`,
-                    eventTitle: sessionData.eventTitle,
-                    eventId: sessionData.eventId,
-                    sessionId: sessionData.id
-                });
+                addNotification(
+                    'success',
+                    'Signup cancelled',
+                    `Your signup for ${sessionData.eventTitle} was cancelled.`
+                );
                 break;
             case 'drop':
-                addNotification({
-                    type: 'event_updated',
-                    title: 'Removed from waitlist',
-                    message: `You have been removed from the waitlist for ${sessionData.eventTitle}`,
-                    eventTitle: sessionData.eventTitle,
-                    eventId: sessionData.eventId,
-                    sessionId: sessionData.id
-                });
+                addNotification(
+                    'success',
+                    'Removed from waitlist',
+                    `You have been removed from the waitlist for ${sessionData.eventTitle}`
+                );
                 break;
         }
         setModalState({ ...modalState, isOpen: false });
@@ -501,18 +489,18 @@ export default function SessionDetail() {
         return (
             <Link
                 key={signup.id}
-                to={`/profile/${participant.id}`}
-                className={`block p-3 rounded-lg border-2 border-dashed transition-colors ${isWaitlist
-                    ? 'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-500 opacity-60 hover:bg-slate-200 dark:hover:bg-slate-600'
-                    : isStudent
-                        ? 'bg-green-50 dark:bg-slate-700 border-green-200 dark:border-slate-500 hover:bg-green-100 dark:hover:bg-slate-600'
-                        : 'bg-blue-50 dark:bg-slate-700 border-blue-200 dark:border-slate-500 hover:bg-blue-100 dark:hover:bg-slate-600'
-                    }`}
+                to={`/ profile / ${participant.id}`}
+                className={`block p - 3 rounded - lg border - 2 border - dashed transition - colors ${isWaitlist
+                        ? 'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-500 opacity-60 hover:bg-slate-200 dark:hover:bg-slate-600'
+                        : isStudent
+                            ? 'bg-green-50 dark:bg-slate-700 border-green-200 dark:border-slate-500 hover:bg-green-100 dark:hover:bg-slate-600'
+                            : 'bg-blue-50 dark:bg-slate-700 border-blue-200 dark:border-slate-500 hover:bg-blue-100 dark:hover:bg-slate-600'
+                    } `}
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${isStudent ? 'bg-green-500' : 'bg-blue-500'
-                            }`}>
+                        <div className={`w - 8 h - 8 rounded - full flex items - center justify - center text - white font - bold text - sm ${isStudent ? 'bg-green-500' : 'bg-blue-500'
+                            } `}>
                             {participant.name.charAt(0)}
                         </div>
                         <div>
@@ -652,7 +640,7 @@ export default function SessionDetail() {
         <>
             <div className="space-y-6 p-4 lg:p-8">
                 <Link
-                    to={`/events/${sessionData.eventId}`}
+                    to={`/ events / ${sessionData.eventId} `}
                     className="inline-flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" />

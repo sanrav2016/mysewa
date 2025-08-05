@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Calendar, MapPin, Users, Clock, Edit, ChevronDown, Ruler as Schedule } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Trash, Repeat, FileText, Copy, Archive, Calendar, MapPin, Users, Clock, Edit, ChevronDown, Ruler as Schedule } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
