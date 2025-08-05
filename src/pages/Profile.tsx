@@ -50,13 +50,13 @@ export default function Profile() {
           {/* Avatar + Details side-by-side even on mobile */}
           <div className="flex items-start gap-4 sm:gap-6">
             {/* Avatar */}
-            <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center text-white text-2xl sm:text-3xl font-bold transform hover:-rotate-3 hover:scale-105 shadow-lg transition-all duration-300 shrink-0">
+            <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center text-white text-2xl sm:text-3xl font-bold transform hover:rotate-3 hover:scale-105 shadow-lg transition-all duration-300 shrink-0">
               {user.name.charAt(0)}
             </div>
 
             {/* Info block */}
             <div className="flex flex-col justify-center">
-              <h1 className="text-xl sm:text-3xl font-bold text-slate-800 dark:text-white mb-1 sm:mb-2 transform rotate-1">
+              <h1 className="text-xl sm:text-3xl font-bold text-slate-800 dark:text-white mb-1 sm:mb-2 transform">
                 {user.name}
               </h1>
 

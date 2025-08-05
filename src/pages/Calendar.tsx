@@ -15,9 +15,11 @@ export default function Calendar() {
   const [showUserEventsOnly, setShowUserEventsOnly] = useState(false);
   const [stickyControls, setStickyControls] = useState(false);
 
-  window.addEventListener('scroll', () => {
-    setStickyControls(window.scrollY > document.getElementById("controls")!.offsetHeight);
-  })
+  useEffect(() => {
+    window.addEventListener('scroll', () => {
+      setStickyControls(window.scrollY > document.getElementById("controls")!.offsetHeight);
+    })
+  }, [])
 
   const categories = Array.from(new Set(mockEvents.map(e => e.category)));
 
@@ -158,7 +160,7 @@ export default function Calendar() {
               <div
                 key={normalizedDay.toISOString()}
                 onClick={() => handleDayClick(normalizedDay)}
-                className={`transition-all min-h-[100px] p-1 lg:p-2 rounded-lg border-2 border-solid cursor-pointer
+                className={`transition-all min-h-16 md:min-h-24 p-1 lg:p-2 rounded-lg border-2 border-solid cursor-pointer
                   ${isCurrentMonth
                     ? 'bg-white dark:bg-slate-700 border-orange-200 dark:border-slate-600 hover:bg-orange-50 dark:hover:bg-slate-600'
                     : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -379,12 +381,12 @@ export default function Calendar() {
       </div>
 
       {/* Controls */}
-      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-4 transition-all border-orange-200 dark:border-slate-600 w-full sticky top-0 z-50 ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
+      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg transition-all border-orange-200 dark:border-slate-600 w-full sticky top-0 z-50 ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_32px)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "border-4 p-6"}`}>
         <div className={stickyControls ? "space-y-3" : "space-y-4"}>
           {/* Date Navigation + View Type */}
-          <div className="flex flex-col lg:flex-row justify-between gap-4 items-start lg:items-center">
+          <div className="flex flex-col lg:flex-row justify-between gap-4 items-center">
             {/* Navigation */}
-            <div className="flex items-center gap-3 flex-1">
+            <div className="flex items-center gap-3 flex-1 w-full">
               <button
                 onClick={() => navigateDate('prev')}
                 className="p-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-xl border border-orange-300 dark:border-orange-700 hover:scale-105 cursor-pointer transition-all"

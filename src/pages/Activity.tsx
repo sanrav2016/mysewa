@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, CheckCircle, XCircle, Clock, Users, Calendar, MapPin, Search, Filter } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,20 @@ export default function Activity() {
   const { notifications } = useNotification();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'signup' | 'hours_awarded' | 'reminder'>('all');
+
+  const [stickyControls, setStickyControls] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const controlsElement = document.getElementById("controls");
+      if (controlsElement) {
+        setStickyControls(window.scrollY > controlsElement.offsetHeight);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Mock recent activities based on user actions
   const recentActivities = [
@@ -121,7 +135,7 @@ export default function Activity() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
+      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg transform border-orange-200 dark:border-slate-600 sticky w-full top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_32px)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "border-4 p-6"}`}>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -131,7 +145,7 @@ export default function Activity() {
                 placeholder="Search activities..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "py-2" : "py-3"}`}
               />
             </div>
           </div>

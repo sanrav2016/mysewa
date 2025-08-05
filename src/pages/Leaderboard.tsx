@@ -133,7 +133,7 @@ export default function Leaderboard() {
       case 2:
         return 'from-gray-300 to-gray-500';
       case 3:
-        return 'from-amber-400 to-amber-600';
+        return 'from-amber-600 to-amber-800';
       default:
         return 'from-orange-400 to-red-500';
     }
@@ -197,7 +197,7 @@ export default function Leaderboard() {
       </div>
 
       {/* Filters */}
-      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600 sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
+      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-orange-200 dark:border-slate-600 sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_32px)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6 border-4"}`}>
         <div className="space-y-4">
           {/* View Type Selector */}
           <div className="flex gap-2">
@@ -206,8 +206,8 @@ export default function Leaderboard() {
                 key={type}
                 onClick={() => setViewType(type)}
                 className={`rounded-xl font-medium transition-colors capitalize ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"} ${viewType === type
-                    ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
-                    : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
+                  ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
+                  : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
                   }`}
               >
                 {type}
@@ -224,7 +224,7 @@ export default function Leaderboard() {
                   placeholder={`Search ${viewType}...`}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                  className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "py-2" : "py-3"}`}
                 />
               </div>
             </div>
@@ -301,9 +301,52 @@ export default function Leaderboard() {
                     to={`/profile/${user.id}`}
                     className="block"
                   >
-                    <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-orange-200 dark:border-slate-500 hover:bg-orange-50 dark:hover:bg-slate-700 transition-all hover:scale-102 group">
+                    <div
+                      className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all hover:scale-102 group backdrop-blur-md bg-opacity-60 overflow-hidden
+    ${rank === 1
+                          ? 'bg-yellow-100/60 dark:bg-yellow-300/10 border-yellow-500 shadow-[0_4px_30px_rgba(255,215,0,0.4)]'
+                          : rank === 2
+                            ? 'bg-gray-200/60 dark:bg-gray-400/10 border-gray-400 shadow-[0_4px_30px_rgba(192,192,192,0.3)]'
+                            : rank === 3
+                              ? 'bg-orange-200/60 dark:bg-amber-300/10 border-amber-700 shadow-[0_4px_30px_rgba(205,127,50,0.25)]'
+                              : 'border-orange-200 dark:border-slate-500 hover:bg-orange-50 dark:hover:bg-slate-700'
+                        }`}
+                    >
                       <div className="flex items-center gap-4">
-                        {getRankIcon(rank)}
+                        {
+                          rank <= 3 ?
+                            <div className="w-6 h-6 relative">
+                              {/* Trophy Icon - smaller and centered */}
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                {
+                                  rank == 1 ? 
+                                  <Trophy className="-rotate-12 w-20 h-20  ml-2 shrink-0 opacity-15 text-yellow-700 dark:text-yellow-300" /> : 
+                                  rank == 2 ?
+                                  <Award className="rotate-12 w-16 h-16 ml-1 shrink-0 opacity-10 text-black dark:text-white" /> :
+                                  <Award className="-rotate-12 w-12 h-12 shrink-0 opacity-10 text-black dark:text-white" />
+                                }
+                              </div>
+
+                              {/* Large stylized rank number */}
+                              <div className="absolute inset-0 left-[-10px] flex items-center justify-center pointer-events-none w-10">
+                                <div
+                                  className={`w-full font-extrabold italic text-transparent bg-clip-text text-center select-none leading-none drop-shadow-[1px_1px_0px_rgba(58,0,56,1)]
+                                ${rank === 1
+                                      ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-4xl'
+                                      : rank === 2
+                                        ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-4xl'
+                                        : rank === 3
+                                          ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-4xl'
+                                          : ''
+                                    }`}
+                                >
+                                  {rank}
+                                </div>
+                              </div>
+                            </div>
+                            :
+                            <span className="w-6 h-6 flex items-center justify-center text-slate-600 dark:text-slate-400 font-bold">{rank}</span>
+                        }
                         <div className={`w-12 h-12 bg-gradient-to-br ${getRankColor(rank)} rounded-xl flex items-center justify-center text-white font-bold transform transition-all group-hover:rotate-6`}>
                           {user.name.charAt(0)}
                         </div>
@@ -315,10 +358,10 @@ export default function Leaderboard() {
                             {user.name}
                           </h3>
                           <span className={`px-3 py-1 rounded-lg text-sm font-medium capitalize ${user.role === 'admin'
-                              ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                              : user.role === 'parent'
-                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
-                                : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                            : user.role === 'parent'
+                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
+                              : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
                             }`}>
                             {user.role}
                           </span>
@@ -366,7 +409,7 @@ export default function Leaderboard() {
                     key={location.name}
                     className="flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-orange-200 dark:border-slate-500 hover:bg-orange-50 dark:hover:bg-slate-700 transition-all hover:scale-102 group"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex w-full items-center gap-4">
                       {getRankIcon(rank)}
                       <div className={`w-12 h-12 bg-gradient-to-br ${getRankColor(rank)} rounded-xl flex items-center justify-center text-white font-bold transform transition-all group-hover:rotate-6`}>
                         {viewType === 'chapter' ? <Building className="w-6 h-6" /> : <MapPin className="w-6 h-6" />}
@@ -380,7 +423,7 @@ export default function Leaderboard() {
                             {location.memberCount} members
                           </span>
                           <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
-                            {location.avgHours} avg hours
+                            {location.avgHours} hours on average
                           </span>
                         </div>
                       </div>

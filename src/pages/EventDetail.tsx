@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, ArrowLeft, UserPlus, Tag, Search, Edit } from 'lucide-react';
 import DOMPurify from 'dompurify';
@@ -10,6 +10,20 @@ export default function EventDetail() {
   const { eventId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const [stickyControls, setStickyControls] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const controlsElement = document.getElementById("controls");
+      if (controlsElement) {
+        setStickyControls(window.scrollY > controlsElement.offsetHeight);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [afterDate, setAfterDate] = useState('');
@@ -129,7 +143,7 @@ export default function EventDetail() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600 sticky top-0 z-50">
+      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg transform border-orange-200 dark:border-slate-600 sticky w-full top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_32px)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "border-4 p-6"}`}>
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search Input */}
           <div className="flex-1">
@@ -140,7 +154,7 @@ export default function EventDetail() {
                 placeholder="Search sessions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "py-2" : "py-3"}`}
               />
             </div>
           </div>
@@ -178,7 +192,7 @@ export default function EventDetail() {
               <div
                 key={instance.id}
                 onClick={() => navigate(`/sessions/${instance.id}`)}
-                className={`cursor-pointer p-6 rounded-2xl border-4 border-dashed shadow-lg transition-colors duration-200 ${isPast
+                className={`hover:scale-102 cursor-pointer p-6 rounded-2xl border-4 border-dashed shadow-lg transition-all duration-200 ${isPast
                   ? 'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 opacity-60'
                   : 'bg-orange-50 dark:bg-slate-700 border-orange-200 dark:border-slate-500 hover:bg-orange-100 dark:hover:bg-slate-600'
                   }`}

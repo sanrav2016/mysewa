@@ -137,7 +137,7 @@ export default function Layout() {
             {/* Bottom sticky footer */}
             <div className="sticky bottom-0 m-6 bg-gradient-to-r from-orange-100 to-red-100 dark:from-slate-700 dark:to-slate-600 p-4 shadow-lg rounded-xl border-2 border-dashed border-orange-200 dark:border-slate-500">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white font-bold hover:scale-110 transition-transform duration-200">
+                <div className="min-w-12 min-h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white font-bold hover:scale-110 transition-transform duration-200">
                   {user?.name.charAt(0)}
                 </div>
                 <div>

@@ -115,10 +115,6 @@ function ParticipantManagementModal({ isOpen, onClose, sessionData, sessionSignu
         onClose();
     };
 
-    const addUser = () => {
-        alert('Add user functionality would open a user selection modal');
-    };
-
     const removeUser = (userId: string) => {
         if (confirm('Are you sure you want to remove this user from the session?')) {
             setParticipants(prev => prev.filter(p => p.userId !== userId));
@@ -166,13 +162,6 @@ function ParticipantManagementModal({ isOpen, onClose, sessionData, sessionSignu
                         >
                             <UserCheck className="w-4 h-4" />
                             Mark All Present
-                        </button>
-                        <button
-                            onClick={addUser}
-                            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors border-2 border-dashed border-blue-400"
-                        >
-                            <UserPlus className="w-4 h-4" />
-                            Add User
                         </button>
                     </div>
                 </div>
@@ -490,7 +479,7 @@ export default function SessionDetail() {
             <Link
                 key={signup.id}
                 to={`/ profile / ${participant.id}`}
-                className={`block p - 3 rounded - lg border - 2 border - dashed transition - colors ${isWaitlist
+                className={`block p-3 rounded-lg border-2 border-dashed transition-colors ${isWaitlist
                         ? 'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-500 opacity-60 hover:bg-slate-200 dark:hover:bg-slate-600'
                         : isStudent
                             ? 'bg-green-50 dark:bg-slate-700 border-green-200 dark:border-slate-500 hover:bg-green-100 dark:hover:bg-slate-600'
@@ -499,8 +488,8 @@ export default function SessionDetail() {
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className={`w - 8 h - 8 rounded - full flex items - center justify - center text - white font - bold text - sm ${isStudent ? 'bg-green-500' : 'bg-blue-500'
-                            } `}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${isStudent ? 'bg-green-500' : 'bg-blue-500'
+                            }`}>
                             {participant.name.charAt(0)}
                         </div>
                         <div>
@@ -640,7 +629,7 @@ export default function SessionDetail() {
         <>
             <div className="space-y-6 p-4 lg:p-8">
                 <Link
-                    to={`/ events / ${sessionData.eventId} `}
+                    to={`/events/${sessionData.eventId}`}
                     className="inline-flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" />

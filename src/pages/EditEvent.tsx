@@ -19,7 +19,7 @@ interface EventInstance {
     parentCapacity: number;
     description?: string;
     restrictions?: {
-        prerequisiteEvent?: string;
+        prerequisiteEvents?: any[];
         minAge?: number;
         maxAge?: number;
         minHours?: number;
@@ -51,7 +51,7 @@ interface ConfirmationModalProps {
 function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirmText, confirmColor }: ConfirmationModalProps) {
     return (
         <div
-            className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[150] p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                 }`}
         >
             <div
@@ -88,6 +88,18 @@ export default function EditEvent() {
     const { isDark } = useTheme();
     const navigate = useNavigate();
     const { addNotification } = useNotification();
+    const [stickyControls, setStickyControls] = useState(false);
+    const [showPublishMenu, setShowPublishMenu] = useState(false);
+
+    useEffect(() => {
+        window.addEventListener('scroll', () => {
+            setStickyControls(window.scrollY > document.getElementById("controls")!.offsetHeight);
+        })
+
+        window.addEventListener('click', () => {
+            setShowPublishMenu(false);
+        })
+    }, [])
 
     const isEditing = !!eventId;
     const isEditingSession = !!sessionId;
@@ -98,7 +110,7 @@ export default function EditEvent() {
         category: '',
         tags: '',
         isRecurring: false,
-        status: 'draft' as 'draft' | 'published' | 'archived',
+        status: 'draft' as 'draft' | 'published' | 'archived' | 'scheduled',
         chapters: [] as string[],
         cities: [] as string[],
         scheduledPublishDate: null
@@ -117,7 +129,6 @@ export default function EditEvent() {
 
     const [showBulkCreate, setShowBulkCreate] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [showPublishMenu, setShowPublishMenu] = useState(false);
     const [showScheduleModal, setShowScheduleModal] = useState(false);
     const [scheduleDate, setScheduleDate] = useState('');
     const [scheduleTime, setScheduleTime] = useState('');
@@ -132,7 +143,6 @@ export default function EditEvent() {
         description: ''
     });
     const [searchTerm, setSearchTerm] = useState('');
-    const [isPreviewMode, setIsPreviewMode] = useState(false);
 
     const categories = [
         'Community Service',
@@ -168,13 +178,7 @@ export default function EditEvent() {
                         ...instance,
                         startDate: instance.startDate.slice(0, 16), // Format for datetime-local
                         endDate: instance.endDate.slice(0, 16),
-                        restrictions: instance.restrictions || {
-                            prerequisiteEvents: [],
-                            minAge: null,
-                            maxAge: null,
-                            minHours: null,
-                            maxHours: null
-                        }
+                        restrictions: instance.restrictions || {}
                     }
                 )));
             }
@@ -237,13 +241,7 @@ export default function EditEvent() {
                     studentCapacity: bulkOptions.studentCapacity,
                     parentCapacity: bulkOptions.parentCapacity,
                     description: bulkOptions.description,
-                    restrictions: {
-                        prerequisiteEvents: [],
-                        minAge: null,
-                        maxAge: null,
-                        minHours: null,
-                        maxHours: null
-                    }
+                    restrictions: {}
                 });
                 current.setDate(current.getDate() + 1);
             } else if (bulkOptions.frequency === 'weekly') {
@@ -255,13 +253,7 @@ export default function EditEvent() {
                         studentCapacity: bulkOptions.studentCapacity,
                         parentCapacity: bulkOptions.parentCapacity,
                         description: bulkOptions.description,
-                        restrictions: {
-                            prerequisiteEvents: [],
-                            minAge: null,
-                            maxAge: null,
-                            minHours: null,
-                            maxHours: null
-                        }
+                        restrictions: {}
                     });
                 }
                 current.setDate(current.getDate() + 1);
@@ -275,10 +267,6 @@ export default function EditEvent() {
                     description: bulkOptions.description,
                     restrictions: {
                         prerequisiteEvents: [],
-                        minAge: null,
-                        maxAge: null,
-                        minHours: null,
-                        maxHours: null
                     }
                 });
                 current.setMonth(current.getMonth() + 1);
@@ -313,13 +301,7 @@ export default function EditEvent() {
             studentCapacity: 10,
             parentCapacity: 5,
             description: '',
-            restrictions: {
-                prerequisiteEvents: [],
-                minAge: null,
-                maxAge: null,
-                minHours: null,
-                maxHours: null
-            }
+            restrictions: {}
         }]);
     };
 
@@ -345,7 +327,7 @@ export default function EditEvent() {
     };
 
     const handlePublishNow = () => {
-        const updatedEvent = { ...eventData, status: 'published' };
+        const updatedEvent = { ...eventData, status: 'published' as any };
         setEventData(updatedEvent);
         console.log('Publishing event now:', updatedEvent);
         addNotification('success', 'Event Published', 'Your event has been published successfully!');
@@ -357,12 +339,12 @@ export default function EditEvent() {
             addNotification('error', 'Missing Information', 'Please select both date and time for scheduling.');
             return;
         }
-        
+
         const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
-        const updatedEvent = { 
-            ...eventData, 
-            status: 'scheduled',
-            scheduledPublishDate: scheduledDateTime.toISOString()
+        const updatedEvent = {
+            ...eventData,
+            status: 'scheduled' as any,
+            scheduledPublishDate: scheduledDateTime.toISOString() as any
         };
         setEventData(updatedEvent);
         console.log('Scheduling event for:', scheduledDateTime);
@@ -373,7 +355,7 @@ export default function EditEvent() {
 
     const handleArchive = () => {
         if (confirm('Are you sure you want to archive this event? It will no longer be visible to users.')) {
-            const updatedEvent = { ...eventData, status: 'archived' };
+            const updatedEvent = { ...eventData, status: 'archived' as any };
             setEventData(updatedEvent);
             console.log('Archiving event:', updatedEvent);
             addNotification('info', 'Event Archived', 'Your event has been archived successfully.');
@@ -474,7 +456,7 @@ export default function EditEvent() {
 
     return (
         <>
-            <div className="space-y-6 p-4 lg:p-8">
+            <div className="space-y-6 p-4 lg:p-8 relative">
                 {(eventId || sessionId) &&
                     <Link
                         to={backLink}
@@ -500,32 +482,96 @@ export default function EditEvent() {
                                         : 'Set up a new volunteer opportunity for your chapter'
                                 }
                             </p>
-                            {isEditing && (
-                                <div className="mt-2">
-                                    <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium capitalize ${eventData.status === 'published'
-                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                                        : eventData.status === 'draft'
-                                            ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
-                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
-                                        }`}>
-                                        {eventData.status}
-                                    </span>
-                                </div>
-                            )}
                         </div>
-                        {isEditing && !isEditingSession && (
-                            <button
-                                onClick={() => setShowDeleteModal(true)}
-                                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors border-2 border-dashed border-red-400"
-                            >
-                                <Trash className="w-4 h-4" />
-                                Delete Event
-                            </button>
-                        )}
                     </div>
                 </div>
 
                 <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+                    {/* Action Buttons */}
+                    <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-lg border-orange-200 dark:border-slate-600 sticky top-0 z-50 border-dashed transition-all ${stickyControls ? "rounded-none border-0 border-b-2 -mx-4 lg:-mx-8 w-[calc(100%_+_32px)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6 border-2"}`}>
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div className="text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                                <span>Status:</span>
+                                <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium capitalize ${eventData.status === 'published'
+                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                                    : eventData.status === 'draft'
+                                        ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
+                                    }`}>
+                                    {eventData.status}
+                                </span>
+                            </div>
+
+                            <div className="flex flex-wrap gap-3 relative">
+                                {/* Save Draft Button */}
+                                {eventData.status !== 'published' && (
+                                    <button
+                                        onClick={handleSave}
+                                        className="flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-xl font-medium transition-colors border-2 border-dashed border-slate-400"
+                                    >
+                                        <Save className="w-4 h-4" />
+                                        Save Draft
+                                    </button>
+                                )}
+
+                                {/* Publish Dropdown */}
+                                <div className="relative">
+                                    {showPublishMenu && (
+                                        <div className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-800 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-xl shadow-lg z-50 min-w-48">
+                                            <button
+                                                onClick={handlePublishNow}
+                                                className="w-full text-left px-4 py-3 hover:bg-green-50 dark:hover:bg-green-900/20 text-slate-800 dark:text-white flex items-center gap-2 rounded-t-xl"
+                                            >
+                                                <Eye className="w-4 h-4 text-green-600" />
+                                                Publish Now
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowScheduleModal(true);
+                                                    setShowPublishMenu(false);
+                                                }}
+                                                className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-800 dark:text-white flex items-center gap-2 border-t border-dashed border-slate-200 dark:border-slate-600 rounded-b-xl"
+                                            >
+                                                <Clock className="w-4 h-4 text-blue-600" />
+                                                Schedule Publish
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setShowPublishMenu(!showPublishMenu)
+                                        }}
+                                        type="button"
+                                        className="flex items-center gap-2 bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all duration-200 hover:scale-105 border-2 border-dashed border-green-300"
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                        Publish
+                                        <ChevronDown className={`w-4 h-4 transition-transform ${showPublishMenu ? 'rotate-180' : ''}`} />
+                                    </button>
+                                </div>
+
+                                {/* Archive Button */}
+                                <button
+                                    onClick={handleArchive}
+                                    className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-xl font-medium transition-colors border-2 border-dashed border-yellow-400"
+                                >
+                                    <Archive className="w-4 h-4" />
+                                    Archive
+                                </button>
+
+                                {/* Delete Button */}
+                                <button
+                                    onClick={() => { setShowDeleteModal(true) }}
+                                    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-medium transition-colors border-2 border-dashed border-red-400"
+                                >
+                                    <Trash className="w-4 h-4" />
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     {/* Basic Event Info */}
                     {!isEditingSession && (
                         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-lg shadow-lg border-2 border-dashed border-orange-200 dark:border-slate-600">
@@ -804,87 +850,6 @@ export default function EditEvent() {
                             ))}
                         </div>
                     </div>
-
-                    {/* Action Buttons */}
-                    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600 relative">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <div className="text-sm text-slate-600 dark:text-slate-300">
-                                Status: <span className={`font-medium capitalize ${
-                                    eventData.status === 'published' ? 'text-green-600' :
-                                    eventData.status === 'archived' ? 'text-red-600' :
-                                    eventData.status === 'scheduled' ? 'text-blue-600' :
-                                    'text-yellow-600'
-                                }`}>
-                                    {eventData.status}
-                                </span>
-                            </div>
-                            
-                            <div className="flex flex-wrap gap-3 relative">
-                                {/* Save Draft Button */}
-                                {eventData.status !== 'published' && (
-                                    <button
-                                        onClick={handleSave}
-                                        className="flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-xl font-medium transition-colors border-2 border-dashed border-slate-400"
-                                    >
-                                        <Save className="w-4 h-4" />
-                                        Save Draft
-                                    </button>
-                                )}
-
-                                {/* Publish Dropdown */}
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setShowPublishMenu(!showPublishMenu)}
-                                        className="flex items-center gap-2 bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all duration-200 hover:scale-105 border-2 border-dashed border-green-300"
-                                    >
-                                        <Eye className="w-4 h-4" />
-                                        Publish
-                                        <ChevronDown className={`w-4 h-4 transition-transform ${showPublishMenu ? 'rotate-180' : ''}`} />
-                                    </button>
-
-                                    {showPublishMenu && (
-                                        <div className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-800 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-xl shadow-lg z-50 min-w-48">
-                                            <button
-                                                onClick={handlePublishNow}
-                                                className="w-full text-left px-4 py-3 hover:bg-green-50 dark:hover:bg-green-900/20 text-slate-800 dark:text-white flex items-center gap-2 rounded-t-xl"
-                                            >
-                                                <Eye className="w-4 h-4 text-green-600" />
-                                                Publish Now
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setShowScheduleModal(true);
-                                                    setShowPublishMenu(false);
-                                                }}
-                                                className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-800 dark:text-white flex items-center gap-2 border-t border-dashed border-slate-200 dark:border-slate-600 rounded-b-xl"
-                                            >
-                                                <Clock className="w-4 h-4 text-blue-600" />
-                                                Schedule Publish
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Archive Button */}
-                                <button
-                                    onClick={handleArchive}
-                                    className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-xl font-medium transition-colors border-2 border-dashed border-yellow-400"
-                                >
-                                    <Archive className="w-4 h-4" />
-                                    Archive
-                                </button>
-
-                                {/* Delete Button */}
-                                <button
-                                    onClick={handleDelete}
-                                    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-medium transition-colors border-2 border-dashed border-red-400"
-                                >
-                                    <Trash className="w-4 h-4" />
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </form>
             </div>
 
@@ -900,14 +865,12 @@ export default function EditEvent() {
 
             {/* Schedule Publish Modal */}
             <div
-                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4 transition-opacity duration-300 ${
-                    showScheduleModal ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-                }`}
+                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[150] p-4 transition-opacity duration-300 ${showScheduleModal ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                    }`}
             >
                 <div
-                    className={`bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full border-4 border-dashed border-orange-200 dark:border-slate-600 transform transition-all duration-300 ${
-                        showScheduleModal ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
-                    }`}
+                    className={`bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full border-4 border-dashed border-orange-200 dark:border-slate-600 transform transition-all duration-300 ${showScheduleModal ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
+                        }`}
                 >
                     <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4 font-caveat">
                         Schedule Publish
@@ -954,7 +917,7 @@ export default function EditEvent() {
             </div>
 
             <div
-                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4 transition-opacity duration-300 ${showBulkCreate ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[150] p-4 transition-opacity duration-300 ${showBulkCreate ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                     }`}
             >
                 <div
