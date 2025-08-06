@@ -108,7 +108,7 @@ export default function Chapter() {
                 placeholder="Search members..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "py-2" : "py-3"}`}
+                className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "py-2 text-sm" : "py-3 text-base"}`}
               />
             </div>
           </div>
@@ -195,18 +195,6 @@ export default function Chapter() {
                       <Mail className="w-4 h-4" />
                       {member.email}
                     </div>
-                    {member.phone && (
-                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm">
-                        <Phone className="w-4 h-4" />
-                        {member.phone}
-                      </div>
-                    )}
-                    {member.chapter && (
-                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm">
-                        <Building className="w-4 h-4" />
-                        {member.chapter}
-                      </div>
-                    )}
                     {member.city && (
                       <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm">
                         <MapPin className="w-4 h-4" />

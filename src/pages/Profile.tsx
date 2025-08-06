@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Calendar, Clock, Mail, Phone, Settings, MapPin, Award, Building } from 'lucide-react';
+import { Calendar, Clock, Mail, Phone, Settings, MapPin, Award, Building, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { mockUsers, mockEvents, mockSignups } from '../data/mockData';
 import { format } from 'date-fns';
@@ -152,7 +152,7 @@ export default function Profile() {
         </h2>
         {upcomingEvents.length > 0 ? (
           <div className="space-y-4">
-            {upcomingEvents.map(({ signup, event, instance }) => (
+            {upcomingEvents.slice(0, 2).map(({ signup, event, instance }) => (
               <div
                 key={signup.id}
                 className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl border-2 border-orange-200 dark:border-slate-500 transform hover:scale-102 transition-all cursor-pointer"
@@ -194,15 +194,24 @@ export default function Profile() {
 
       {/* Past Events */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 transform">
-          Recent Activity
-        </h2>
+        <div className="flex justify-between items-start">
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 transform">
+            Recent Activity
+          </h2>
+          <Link
+            to="/history"
+            className="flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transform hover:scale-105 transition-all duration-200"
+          >
+            View All <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
         {pastEvents.length > 0 ? (
           <div className="space-y-4">
-            {pastEvents.slice(0, 5).map(({ signup, event, instance }) => (
-              <div
+            {pastEvents.slice(0, 2).map(({ signup, event, instance }) => (
+              <Link
+                to={`/sessions/${instance!.id}`}
                 key={signup.id}
-                className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-500 transform transition-all hover:scale-102 cursor-pointer"
+                className="block bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-500 transform transition-all hover:scale-102 cursor-pointer"
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -214,7 +223,7 @@ export default function Profile() {
                         <Calendar className="w-4 h-4 shrink-0" />
                         {format(new Date(instance!.startDate), 'MMM d, yyyy')}
                         {signup.attendance && (
-                          <span className={`ml-2 text-xs ${signup.attendance === 'present' ? 'text-green-600' : 'text-red-600'
+                          <span className={`ml-2 text-xs ${signup.attendance === 'present' ? 'text-green-600' : 'text-red-600 dark:text-red-400'
                             }`}>
                             ({signup.attendance})
                           </span>
@@ -234,7 +243,7 @@ export default function Profile() {
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         ) : (

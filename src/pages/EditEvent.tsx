@@ -130,8 +130,7 @@ export default function EditEvent() {
     const [showBulkCreate, setShowBulkCreate] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showScheduleModal, setShowScheduleModal] = useState(false);
-    const [scheduleDate, setScheduleDate] = useState('');
-    const [scheduleTime, setScheduleTime] = useState('');
+    const [scheduleDateTime, setScheduleDateTime] = useState('');
     const [bulkOptions, setBulkOptions] = useState<BulkCreateOptions>({
         startDate: '',
         endDate: '',
@@ -335,12 +334,12 @@ export default function EditEvent() {
     };
 
     const handleSchedulePublish = () => {
-        if (!scheduleDate || !scheduleTime) {
+        if (!scheduleDateTime) {
             addNotification('error', 'Missing Information', 'Please select both date and time for scheduling.');
             return;
         }
 
-        const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
+        const scheduledDateTime = new Date(`${scheduleDateTime}`);
         const updatedEvent = {
             ...eventData,
             status: 'scheduled' as any,
@@ -878,23 +877,12 @@ export default function EditEvent() {
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                Publish Date
+                                Publish Date & Time
                             </label>
                             <input
-                                type="date"
-                                value={scheduleDate}
-                                onChange={(e) => setScheduleDate(e.target.value)}
-                                className="w-full px-4 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                Publish Time
-                            </label>
-                            <input
-                                type="time"
-                                value={scheduleTime}
-                                onChange={(e) => setScheduleTime(e.target.value)}
+                                type="datetime-local"
+                                value={scheduleDateTime}
+                                onChange={(e) => setScheduleDateTime(e.target.value)}
                                 className="w-full px-4 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
                             />
                         </div>
@@ -929,9 +917,9 @@ export default function EditEvent() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Start Date</label>
+                                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Start Date & Time</label>
                                 <input
-                                    type="date"
+                                    type="datetime-local"
                                     value={bulkOptions.startDate}
                                     onChange={(e) => setBulkOptions({ ...bulkOptions, startDate: e.target.value })}
                                     className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
@@ -939,9 +927,9 @@ export default function EditEvent() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">End Date</label>
+                                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">End Date & Time</label>
                                 <input
-                                    type="date"
+                                    type="datetime-local"
                                     value={bulkOptions.endDate}
                                     onChange={(e) => setBulkOptions({ ...bulkOptions, endDate: e.target.value })}
                                     className="w-full px-3 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"

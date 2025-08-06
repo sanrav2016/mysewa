@@ -38,6 +38,7 @@ function App() {
                 <Route path="profile/:userId" element={<Profile />} />
                 <Route path="activity" element={<Activity />} />
                 <Route path="history" element={<History />} />
+                <Route path="history/:userId" element={<History />} />
                 <Route path="calendar" element={<Calendar />} />
                 <Route path="events" element={<Events />} />
                 <Route path="events/:eventId" element={<EventDetail />} />

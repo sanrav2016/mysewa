@@ -34,7 +34,8 @@ export default function Settings() {
     eventReminders: true,
     newEvents: true,
     weeklyDigest: false,
-    emailNotifications: true
+    emailNotifications: true,
+    textNotifications: true
   });
 
   const tabs = [
@@ -303,28 +304,32 @@ export default function Settings() {
 
                 <div className="space-y-4">
                   {Object.entries(notifications).map(([key, value], i) => (
-                    <div key={key} className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-slate-700 dark:to-slate-600 rounded-xl border-2 border-dashed border-orange-200 dark:border-slate-500 transition-all duration-200">
-                      <div>
-                        <h3 className="font-medium text-slate-800 dark:text-white">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                        </h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-300">
-                          {key === 'eventReminders' && 'Get reminded about upcoming events you\'re signed up for'}
-                          {key === 'newEvents' && 'Be notified when new volunteer opportunities are posted'}
-                          {key === 'weeklyDigest' && 'Receive a weekly summary of chapter activities'}
-                          {key === 'emailNotifications' && 'Receive notifications via email'}
-                        </p>
+                    <>
+                      <div key={key} className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-slate-700 dark:to-slate-600 rounded-xl border-2 border-dashed border-orange-200 dark:border-slate-500 transition-all duration-200">
+                        <div>
+                          <h3 className="font-medium text-slate-800 dark:text-white">
+                            {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                          </h3>
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            {key === 'eventReminders' && 'Get reminded about upcoming events you\'re signed up for'}
+                            {key === 'newEvents' && 'Be notified when new volunteer opportunities are posted'}
+                            {key === 'weeklyDigest' && 'Receive a weekly summary of chapter activities'}
+                            {key === 'emailNotifications' && 'Receive notifications via email'}
+                            {key === 'textNotifications' && 'Receive notifications via text'}
+                          </p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer hover:scale-110 transition-all">
+                          <input
+                            type="checkbox"
+                            checked={value}
+                            onChange={(e) => setNotifications({ ...notifications, [key]: e.target.checked })}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-orange-500"></div>
+                        </label>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer hover:scale-110 transition-all">
-                        <input
-                          type="checkbox"
-                          checked={value}
-                          onChange={(e) => setNotifications({ ...notifications, [key]: e.target.checked })}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-orange-500"></div>
-                      </label>
-                    </div>
+                      {key == "weeklyDigest" && <hr className="border-slate-300 dark:border-slate-500" />}
+                    </>
                   ))}
                 </div>
 

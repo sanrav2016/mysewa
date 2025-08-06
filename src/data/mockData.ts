@@ -220,13 +220,14 @@ export const mockSignups: UserEventSignup[] = [
     instanceId: '3-1',
     signupDate: '2025-01-16',
     status: 'confirmed',
-    attendance: 'absent'
+    hoursEarned: 18,
+    attendance: 'present'
   },
   {
     id: '3',
     userId: '2',
     eventId: '1',
-    instanceId: '1-1',
+    instanceId: '1-2',
     signupDate: '2025-01-14',
     status: 'confirmed',
     hoursEarned: 3,
@@ -242,7 +243,7 @@ export const mockSignups: UserEventSignup[] = [
   },
   {
     id: '5',
-    userId: '4',
+    userId: '2',
     eventId: '1',
     instanceId: '1-1',
     signupDate: '2025-01-18',

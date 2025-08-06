@@ -8,17 +8,24 @@ type ViewType = 'month' | 'week' | 'day';
 
 export default function Calendar() {
   const { user } = useAuth();
-  const [currentDate, setCurrentDate] = useState(new Date());
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewType, setViewType] = useState<ViewType>('month');
   const [showUserEventsOnly, setShowUserEventsOnly] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [liveDate, setLiveDate] = useState(new Date());
   const [stickyControls, setStickyControls] = useState(false);
 
   useEffect(() => {
     window.addEventListener('scroll', () => {
       setStickyControls(window.scrollY > document.getElementById("controls")!.offsetHeight);
     })
+
+    const interval = setInterval(() => {
+      setLiveDate(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, [])
 
   const categories = Array.from(new Set(mockEvents.map(e => e.category)));
@@ -317,6 +324,13 @@ export default function Calendar() {
           </p>
         ) : (
           <div className="relative w-full border-l border-slate-300 dark:border-slate-500 pl-12">
+            {
+              isSameDay(liveDate, currentDate) && hours.includes(liveDate.getHours()) &&
+              <div className="transition-all absolute h-1 border-dashed border-t-2 border-slate-300 dark:border-slate-500 w-full left-0" style={{ top: `${(liveDate.getHours() + liveDate.getMinutes() / 60 - 6) * 64 - 1}px` }}>
+                <span className="absolute text-xs bottom-full mb-1 right-0 font-bold text-slate-300 dark:text-slate-500">{format(liveDate, 'h:mm a')}</span>
+              </div>
+            }
+
             {/* Time labels */}
             {hours.map(hour => (
               <div
@@ -389,8 +403,7 @@ export default function Calendar() {
             <div className="flex items-center gap-3 flex-1 w-full">
               <button
                 onClick={() => navigateDate('prev')}
-                className="p-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-xl border border-orange-300 dark:border-orange-700 hover:scale-105 cursor-pointer transition-all"
-              >
+                className={`${stickyControls ? "p-1" : "p-2"} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-xl border border-orange-300 dark:border-orange-700 hover:scale-105 cursor-pointer transition-all`}>
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <h2 className="text-xl font-bold text-slate-800 dark:text-white flex-1 text-center">
@@ -398,7 +411,7 @@ export default function Calendar() {
               </h2>
               <button
                 onClick={() => navigateDate('next')}
-                className="p-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-xl border border-orange-300 dark:border-orange-700 hover:scale-105 cursor-pointer transition-all"
+                className={`${stickyControls ? "p-1" : "p-2"} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-xl border border-orange-300 dark:border-orange-700 hover:scale-105 cursor-pointer transition-all`}
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -410,7 +423,7 @@ export default function Calendar() {
                 <button
                   key={view}
                   onClick={() => setViewType(view)}
-                  className={`transform transition-all hover:scale-105 px-4 py-2 rounded-xl font-medium ${viewType === view
+                  className={`transform transition-all hover:scale-105 px-4 py-2 rounded-xl font-medium ${stickyControls ? "text-sm" : "text-base"} ${viewType === view
                     ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white border-orange-400 rotate-1'
                     : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-slate-600'
                     }`}
@@ -432,7 +445,7 @@ export default function Calendar() {
                   placeholder="Search events..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "py-2" : "py-3"}`}
+                  className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "py-2 text-sm" : "py-3 text-base"}`}
                 />
               </div>
             </div>

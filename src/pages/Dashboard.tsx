@@ -171,9 +171,19 @@ export default function Dashboard() {
                   <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl border-2 border-orange-200 dark:border-slate-500 transform hover:scale-102 cursor-pointer transition-transform duration-200">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-slate-800 dark:text-white mb-1">
-                          {event!.title}
-                        </h3>
+                        <div className="flex flex-col md:flex-row mb-1 justify-between">
+                          <div className="font-semibold text-slate-800 dark:text-white">
+                            {event!.title}
+                          </div>
+                          <div>
+                            <span className={`inline-block px-2 py-1 rounded-lg text-xs font-medium ${signup.status === 'confirmed'
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                              : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+                              }`}>
+                              {signup.status.charAt(0).toUpperCase() + signup.status.slice(1)}
+                            </span>
+                          </div>
+                        </div>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-slate-600 dark:text-slate-300 min-w-0">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-4 h-4 shrink-0" />
@@ -183,14 +193,6 @@ export default function Dashboard() {
                             <MapPin className="w-4 h-4 shrink-0" />
                             <span className="truncate">{instance!.location}</span>
                           </div>
-                        </div>
-                        <div className="mt-2">
-                          <span className={`inline-block px-2 py-1 rounded-lg text-xs font-medium ${signup.status === 'confirmed'
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                            : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
-                            }`}>
-                            {signup.status.charAt(0).toUpperCase() + signup.status.slice(1)}
-                          </span>
                         </div>
                       </div>
                     </div>
@@ -228,9 +230,19 @@ export default function Dashboard() {
                   <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl border-2 border-blue-200 dark:border-slate-500 transform hover:scale-102 cursor-pointer transition-transform duration-200">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-slate-800 dark:text-white mb-1">
-                          {event.eventTitle}
-                        </h3>
+                        <div className="flex flex-col md:flex-row mb-1 justify-between">
+                          <div className="font-semibold text-slate-800 dark:text-white">
+                            {event.eventTitle}
+                          </div>
+                          <div className="flex flex-wrap gap-2 items-center">
+                            <span className="text-xs text-slate-600 dark:text-slate-300">
+                              {event.studentSignups.length + event.parentSignups.length}/{event.studentCapacity + event.parentCapacity} spots
+                            </span>
+                            <span className="inline-block bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-lg text-xs font-medium">
+                              {event.category}
+                            </span>
+                          </div>
+                        </div>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-slate-600 dark:text-slate-300 min-w-0">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-4 h-4 shrink-0" />
@@ -240,14 +252,6 @@ export default function Dashboard() {
                             <MapPin className="w-4 h-4 shrink-0" />
                             <span className="truncate">{event.location}</span>
                           </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-2 items-center">
-                          <span className="inline-block bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-lg text-xs font-medium">
-                            {event.category}
-                          </span>
-                          <span className="text-xs text-slate-600 dark:text-slate-300">
-                            {event.studentSignups.length + event.parentSignups.length}/{event.studentCapacity + event.parentCapacity} spots
-                          </span>
                         </div>
                       </div>
                     </div>

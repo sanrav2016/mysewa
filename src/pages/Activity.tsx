@@ -145,7 +145,7 @@ export default function Activity() {
                 placeholder="Search activities..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "py-2" : "py-3"}`}
+                className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "py-2 text-sm" : "py-3 text-base"}`}
               />
             </div>
           </div>
@@ -155,7 +155,7 @@ export default function Activity() {
               <button
                 key={filterType}
                 onClick={() => setFilter(filterType)}
-                className={`px-4 py-2 rounded-xl font-medium transition-colors ${
+                className={`px-4 py-2 rounded-xl font-medium transition-colors ${stickyControls ? "text-sm" : "text-base"} ${
                   filter === filterType
                     ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
                     : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'

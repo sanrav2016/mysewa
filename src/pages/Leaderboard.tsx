@@ -157,7 +157,11 @@ export default function Leaderboard() {
           <div className="flex items-center gap-4">
             <Trophy className="w-8 h-8 text-yellow-200" />
             <div>
-              <p className="text-yellow-100 text-sm font-medium">Top Volunteer</p>
+              <p className="text-yellow-100 text-sm font-medium">Top {
+                viewType == 'individual' ? 'Volunteer' :
+                  viewType == 'chapter' ? 'Chapter' :
+                    'City'
+              }</p>
               <p className="text-2xl font-bold">
                 {viewType === 'individual'
                   ? (filteredUsers[0]?.name || 'N/A')
@@ -198,85 +202,66 @@ export default function Leaderboard() {
 
       {/* Filters */}
       <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-orange-200 dark:border-slate-600 sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_32px)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6 border-4"}`}>
-        <div className="space-y-4">
+        <div className="flex gap-3 flex-wrap">
           {/* View Type Selector */}
-          <div className="flex gap-2">
-            {(['individual', 'chapter', 'city'] as const).map((type) => (
-              <button
-                key={type}
-                onClick={() => setViewType(type)}
-                className={`rounded-xl font-medium transition-colors capitalize ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"} ${viewType === type
-                  ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
-                  : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
-                  }`}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
+          {(['individual', 'chapter', 'city'] as const).map((type) => (
+            <button
+              key={type}
+              onClick={() => setViewType(type)}
+              className={`rounded-xl font-medium transition-colors capitalize ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"} ${viewType === type
+                ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
+                : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
+                }`}
+            >
+              {type}
+            </button>
+          ))}
 
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder={`Search ${viewType}...`}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "py-2" : "py-3"}`}
-                />
-              </div>
-            </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortBy)}
+            className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
+          >
+            <option value="hours">Sort by Hours</option>
+            <option value="events">Sort by Events</option>
+          </select>
 
-            <div className="flex gap-4">
+          {viewType === 'individual' && (
+            <>
               <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortBy)}
+                value={filterBy}
+                onChange={(e) => setFilterBy(e.target.value as FilterBy)}
                 className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
               >
-                <option value="hours">Sort by Hours</option>
-                <option value="events">Sort by Events</option>
+                <option value="all">All Roles</option>
+                <option value="student">Students</option>
+                <option value="parent">Parents</option>
+                <option value="admin">Admins</option>
               </select>
 
-              {viewType === 'individual' && (
-                <>
-                  <select
-                    value={filterBy}
-                    onChange={(e) => setFilterBy(e.target.value as FilterBy)}
-                    className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
-                  >
-                    <option value="all">All Roles</option>
-                    <option value="student">Students</option>
-                    <option value="parent">Parents</option>
-                    <option value="admin">Admins</option>
-                  </select>
+              <select
+                value={chapterFilter}
+                onChange={(e) => setChapterFilter(e.target.value)}
+                className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
+              >
+                <option value="all">All Chapters</option>
+                {chapters.map(chapter => (
+                  <option key={chapter} value={chapter}>{chapter}</option>
+                ))}
+              </select>
 
-                  <select
-                    value={chapterFilter}
-                    onChange={(e) => setChapterFilter(e.target.value)}
-                    className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
-                  >
-                    <option value="all">All Chapters</option>
-                    {chapters.map(chapter => (
-                      <option key={chapter} value={chapter}>{chapter}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={cityFilter}
-                    onChange={(e) => setCityFilter(e.target.value)}
-                    className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
-                  >
-                    <option value="all">All Cities</option>
-                    {cities.map(city => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
-                  </select>
-                </>
-              )}
-            </div>
-          </div>
+              <select
+                value={cityFilter}
+                onChange={(e) => setCityFilter(e.target.value)}
+                className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
+              >
+                <option value="all">All Cities</option>
+                {cities.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
       </div>
 
@@ -319,11 +304,11 @@ export default function Leaderboard() {
                               {/* Trophy Icon - smaller and centered */}
                               <div className="absolute inset-0 flex items-center justify-center">
                                 {
-                                  rank == 1 ? 
-                                  <Trophy className="-rotate-12 w-20 h-20  ml-2 shrink-0 opacity-15 text-yellow-700 dark:text-yellow-300" /> : 
-                                  rank == 2 ?
-                                  <Award className="rotate-12 w-16 h-16 ml-1 shrink-0 opacity-10 text-black dark:text-white" /> :
-                                  <Award className="-rotate-12 w-12 h-12 shrink-0 opacity-10 text-black dark:text-white" />
+                                  rank == 1 ?
+                                    <Trophy className="-rotate-12 w-20 h-20  ml-2 shrink-0 opacity-15 text-yellow-700 dark:text-yellow-300" /> :
+                                    rank == 2 ?
+                                      <Award className="rotate-12 w-16 h-16 ml-1 shrink-0 opacity-10 text-black dark:text-white" /> :
+                                      <Award className="-rotate-12 w-12 h-12 shrink-0 opacity-10 text-black dark:text-white" />
                                 }
                               </div>
 
