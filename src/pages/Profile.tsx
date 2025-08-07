@@ -102,7 +102,7 @@ export default function Profile() {
             <div className="self-end lg:self-start">
               <Link
                 to="/settings"
-                className="mt-4 lg:mt-0 flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-4 py-2 rounded-xl hover:bg-orange-200 dark:hover:bg-orange-900/50 transform hover:rotate-2 hover:scale-105 transition-all whitespace-nowrap"
+                className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-4 py-2 rounded-xl hover:bg-orange-200 dark:hover:bg-orange-900/50 transform hover:rotate-2 hover:scale-105 transition-all whitespace-nowrap"
               >
                 <Settings className="w-4 h-4 shrink-0" />
                 Edit Profile
@@ -162,7 +162,7 @@ export default function Profile() {
                     <h3 className="font-semibold text-slate-800 dark:text-white mb-1">
                       {event!.title}
                     </h3>
-                    <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
+                    <div className="flex flex-col md:flex-row items-start md:gap-4 text-sm text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4 shrink-0" />
                         {format(new Date(instance!.startDate), 'MMM d, h:mm a')}
@@ -200,7 +200,7 @@ export default function Profile() {
           </h2>
           <Link
             to="/history"
-            className="flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transform hover:scale-105 transition-all duration-200"
+            className="flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transform hover:scale-105 transition-all duration-200 whitespace-nowrap"
           >
             View All <ArrowRight className="w-4 h-4" />
           </Link>
@@ -213,12 +213,12 @@ export default function Profile() {
                 key={signup.id}
                 className="block bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-500 transform transition-all hover:scale-102 cursor-pointer"
               >
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col md:flex-row items-start justify-between">
                   <div>
                     <h3 className="font-semibold text-slate-800 dark:text-white mb-1">
                       {event!.title}
                     </h3>
-                    <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
+                    <div className="flex flex-col md:flex-row items-start gap-0 md:gap-4 md:items-center text-sm text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4 shrink-0" />
                         {format(new Date(instance!.startDate), 'MMM d, yyyy')}
@@ -234,13 +234,6 @@ export default function Profile() {
                         {instance!.location}
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    {signup.hoursEarned && (
-                      <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-lg text-sm font-medium">
-                        {signup.hoursEarned} hours
-                      </span>
-                    )}
                   </div>
                 </div>
               </Link>

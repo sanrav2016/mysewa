@@ -56,7 +56,7 @@ export function ConfirmationModal({
                         </button>
                         <button
                             type="submit"
-                            className={`flex-1 px-4 py-2 text-white rounded-xl font-medium transition-colors border-2 border-dashed ${confirmColor}`}
+                            className={`flex-1 px-4 py-2 text-white rounded-xl font-medium transition-colors border-2 border-dashed whitespace-nowrap ${confirmColor}`}
                         >
                             {confirmText}
                         </button>

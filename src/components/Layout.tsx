@@ -168,7 +168,7 @@ export default function Layout() {
         </div>
 
         {/* Main content */}
-        <div className="flex-1 transition-all duration-300 lg:ml-64">
+        <div className="flex-1 transition-all duration-300 lg:ml-64 max-w-full">
           <Outlet />
         </div>
       </div>

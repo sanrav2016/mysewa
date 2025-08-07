@@ -4,8 +4,9 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-body {
+html, body {
   font-family: 'DM Sans', sans-serif;
+  scroll-behavior: smooth;
 }
 
 @layer components {

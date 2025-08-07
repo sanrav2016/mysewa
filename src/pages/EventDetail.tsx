@@ -179,13 +179,13 @@ export default function EventDetail() {
 
       {/* Event Header */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+        <div className="flex flex-col md:flex-row items-start justify-between gap-6 md:gap-0">
+          <div className="flex flex-col md:flex-row items-start gap-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg shrink-0">
               {event.title.charAt(0)}
             </div>
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold text-slate-800 dark:text-white mb-4">{event.title}</h1>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-4xl font-bold text-slate-800 dark:text-white mb-4 break-words">{event.title}</h1>
               <div className="text-slate-600 dark:text-slate-300 mb-4 prose prose-lg dark:prose-invert max-w-none">
                 <div
                   className="ProseMirror"
@@ -284,39 +284,39 @@ export default function EventDetail() {
               <div
                 key={instance.id}
                 onClick={() => navigate(`/sessions/${instance.id}`)}
-                className={`hover:scale-102 cursor-pointer p-6 rounded-2xl border-4 border-dashed shadow-lg transition-all duration-200 ${isPast
+                className={`hover:scale-102 cursor-pointer p-4 sm:p-6 rounded-2xl border-4 border-dashed shadow-lg transition-all duration-200 ${isPast
                   ? 'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 opacity-60'
                   : 'bg-orange-50 dark:bg-slate-700 border-orange-200 dark:border-slate-500 hover:bg-orange-100 dark:hover:bg-slate-600'
                   }`}
               >
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                           <Calendar className="w-5 h-5" />
-                          <span>{format(new Date(instance.startDate), 'EEEE, MMM d, yyyy')}</span>
+                          <span className="text-sm sm:text-base">{format(new Date(instance.startDate), 'EEEE, MMM d, yyyy')}</span>
                         </div>
                         <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                           <Clock className="w-5 h-5" />
-                          <span>
+                          <span className="text-sm sm:text-base">
                             {format(new Date(instance.startDate), 'h:mm a')} - {format(new Date(instance.endDate), 'h:mm a')}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                           <MapPin className="w-5 h-5" />
-                          <span>{instance.location}</span>
+                          <span className="text-sm sm:text-base">{instance.location}</span>
                         </div>
                       </div>
 
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                           <Users className="w-5 h-5" />
-                          <span>Students: {instance.studentSignups.length}/{instance.studentCapacity}</span>
+                          <span className="text-sm sm:text-base">Students: {instance.studentSignups.length}/{instance.studentCapacity}</span>
                         </div>
                         <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                           <Users className="w-5 h-5" />
-                          <span>Parents: {instance.parentSignups.length}/{instance.parentCapacity}</span>
+                          <span className="text-sm sm:text-base">Parents: {instance.parentSignups.length}/{instance.parentCapacity}</span>
                         </div>
                         {instance.description && (
                           <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -327,8 +327,8 @@ export default function EventDetail() {
                     </div>
                   </div>
 
-                  <div className="ml-6">
-                    <div className="text-right">
+                  <div className="sm:ml-6">
+                    <div className="text-center sm:text-right">
                       <div className="text-sm text-slate-600 dark:text-slate-300 mb-1">
                         Click to view details
                       </div>
@@ -351,10 +351,10 @@ export default function EventDetail() {
       </div>
 
       {/* Volunteer Statistics Table */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-4 sm:p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white">
               Volunteers ({volunteerData.length})
             </h2>
           </div>
@@ -365,7 +365,7 @@ export default function EventDetail() {
         </div>
 
         {/* Table Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-3">
+        <div className="flex flex-col sm:flex-row gap-4 mb-3">
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -394,176 +394,180 @@ export default function EventDetail() {
 
         {/* Statistics Table */}
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="dark:text-white">
-              <tr className="border-b-2 border-orange-200 dark:border-slate-600">
-                <th className="text-left py-3 px-4">
-                  <button
-                    onClick={() => handleSort('name')}
-                    className="flex items-center gap-1 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-                  >
-                    Volunteer
-                    {volunteerSortBy === 'name' && (
-                      volunteerSortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />
-                    )}
-                  </button>
-                </th>
-                <th className="text-left py-3 px-4">
-                  <button
-                    onClick={() => handleSort('role')}
-                    className="flex items-center gap-1 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-                  >
-                    Role
-                    {volunteerSortBy === 'role' && (
-                      volunteerSortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />
-                    )}
-                  </button>
-                </th>
-                <th className="text-left py-3 px-4">
-                  <button
-                    onClick={() => handleSort('sessions')}
-                    className="flex items-center gap-1 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-                  >
-                    Sessions
-                    {volunteerSortBy === 'sessions' && (
-                      volunteerSortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />
-                    )}
-                  </button>
-                </th>
-                <th className="text-left py-3 px-4">
-                  <button
-                    onClick={() => handleSort('hours')}
-                    className="flex items-center gap-1 text-left hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-                  >
-                    Hours
-                    {volunteerSortBy === 'hours' && (
-                      volunteerSortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />
-                    )}
-                  </button>
-                </th>
-                <th className="text-left py-3 px-4">Earliest Signup</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredVolunteers.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-8 text-slate-500">
-                    No volunteers match your search criteria
-                  </td>
-                </tr>
-              ) : (
-                filteredVolunteers.map((volunteer, index) => {
-                  const user = volunteer.user;
-                  if (!user) return null;
-
-                  // Get earliest signup date
-                  const earliestSignup = volunteer.sessions.length > 0
-                    ? Math.min(...volunteer.sessions.map((s: any) => new Date(s.signupDate).getTime()))
-                    : 0;
-
-                  return (
-                    <React.Fragment key={volunteer.userId}>
-                      <tr
-                        className="border-b border-orange-100 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
-                        onClick={() => setExpandedVolunteerId(expandedVolunteerId === volunteer.userId ? null : volunteer.userId)}
+          <div className="min-w-full inline-block align-middle">
+            <div className="overflow-hidden">
+              <table className="min-w-full divide-y divide-orange-200 dark:divide-slate-600">
+                <thead className="dark:text-white">
+                  <tr className="border-b-2 border-orange-200 dark:border-slate-600">
+                    <th className="text-left py-3 px-2 sm:px-4 text-sm font-medium">
+                      <button
+                        onClick={() => handleSort('name')}
+                        className="flex items-center gap-1 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
                       >
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                              {user.name.charAt(0)}
-                            </div>
-                            <div>
-                              <Link className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors dark:text-white text-slate-800" to={`/profile/${user.id}`}>
-                                <div className="font-medium">{user.name}</div>
-                              </Link>
-                              <div className="text-sm text-slate-500 dark:text-slate-400">{user.email}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.role === 'student' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200' :
-                            user.role === 'parent' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' :
-                              'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200'
-                            }`}>
-                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-orange-600 dark:text-orange-400 text-lg">
-                              {volunteer.totalSignups}
-                            </span>
-                            <span className="text-sm text-slate-600 dark:text-slate-400">
-                              session{volunteer.totalSignups !== 1 ? 's' : ''}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="font-medium text-slate-800 dark:text-white">
-                            {volunteer.totalEventHours}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-300">
-                          {earliestSignup > 0 ? format(new Date(earliestSignup), 'MMM d, yyyy') : 'N/A'}
-                        </td>
-                      </tr>
+                        Volunteer
+                        {volunteerSortBy === 'name' && (
+                          volunteerSortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="text-left py-3 px-2 sm:px-4 text-sm font-medium hidden sm:table-cell">
+                      <button
+                        onClick={() => handleSort('role')}
+                        className="flex items-center gap-1 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
+                      >
+                        Role
+                        {volunteerSortBy === 'role' && (
+                          volunteerSortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="text-left py-3 px-2 sm:px-4 text-sm font-medium">
+                      <button
+                        onClick={() => handleSort('sessions')}
+                        className="flex items-center gap-1 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
+                      >
+                        Sessions
+                        {volunteerSortBy === 'sessions' && (
+                          volunteerSortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="text-left py-3 px-2 sm:px-4 text-sm font-medium">
+                      <button
+                        onClick={() => handleSort('hours')}
+                        className="flex items-center gap-1 text-left hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
+                      >
+                        Hours
+                        {volunteerSortBy === 'hours' && (
+                          volunteerSortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="text-left py-3 px-2 sm:px-4 text-sm font-medium hidden md:table-cell">Earliest Signup</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-orange-100 dark:divide-slate-700">
+                  {filteredVolunteers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-slate-500">
+                        No volunteers match your search criteria
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredVolunteers.map((volunteer, index) => {
+                      const user = volunteer.user;
+                      if (!user) return null;
 
-                      {/* Expandable Sessions Row */}
-                      {expandedVolunteerId === volunteer.userId && (
-                        <tr className="bg-orange-50 dark:bg-slate-700/30">
-                          <td colSpan={6} className="px-4 py-4">
-                            <div className="bg-white dark:bg-slate-800 rounded-xl border-2 border-orange-200 dark:border-slate-600 p-4">
-                              <div className="flex items-center gap-2 mb-4">
-                                <Users2 className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                                <h4 className="font-bold text-slate-800 dark:text-white">
-                                  {user.name}'s Sessions ({volunteer.sessions.length})
-                                </h4>
-                              </div>
-                              <div className="space-y-3">
-                                {volunteer.sessions.map((session: any) => (
-                                  <Link
-                                    key={session.id}
-                                    to={`/sessions/${session.instanceId}`}
-                                    className="block bg-orange-50 dark:bg-slate-700 p-4 rounded-lg border border-orange-200 dark:border-slate-600 hover:bg-orange-100 dark:hover:bg-slate-600 transition-colors"
-                                  >
-                                    <div className="flex items-start justify-between">
-                                      <div className="flex-1">
-                                        <div className="font-medium text-slate-800 dark:text-white">
-                                          {session.sessionDate ? format(session.sessionDate, 'MMM d, yyyy h:mm a') : 'Date TBD'}
-                                        </div>
-                                        <div className="text-sm text-slate-600 dark:text-slate-400">
-                                          {session.sessionLocation}
-                                        </div>
-                                        {session.sessionDescription && (
-                                          <div className="text-xs text-slate-500 dark:text-slate-500 mt-1">
-                                            {session.sessionDescription}
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div className="text-right ml-4">
-                                        <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
-                                          Confirmed
-                                        </span>
-                                        {session.hoursEarned && (
-                                          <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
-                                            {session.hoursEarned}h
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
+                      // Get earliest signup date
+                      const earliestSignup = volunteer.sessions.length > 0
+                        ? Math.min(...volunteer.sessions.map((s: any) => new Date(s.signupDate).getTime()))
+                        : 0;
+
+                      return (
+                        <React.Fragment key={volunteer.userId}>
+                          <tr
+                            className="border-b border-orange-100 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+                            onClick={() => setExpandedVolunteerId(expandedVolunteerId === volunteer.userId ? null : volunteer.userId)}
+                          >
+                            <td className="py-3 px-2 sm:px-4">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                  {user.name.charAt(0)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <Link className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors dark:text-white text-slate-800 truncate" to={`/profile/${user.id}`}>
+                                    <span className="font-medium truncate">{user.name}</span>
                                   </Link>
-                                ))}
+                                  <div className="text-sm text-slate-500 dark:text-slate-400 truncate">{user.email}</div>
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4 hidden sm:table-cell">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.role === 'student' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200' :
+                                user.role === 'parent' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' :
+                                  'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200'
+                                }`}>
+                                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <span className="font-bold text-orange-600 dark:text-orange-400 text-base sm:text-lg">
+                                  {volunteer.totalSignups}
+                                </span>
+                                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                                  session{volunteer.totalSignups !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              <span className="font-medium text-slate-800 dark:text-white">
+                                {volunteer.totalEventHours}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4 text-sm text-slate-600 dark:text-slate-300 hidden md:table-cell">
+                              {earliestSignup > 0 ? format(new Date(earliestSignup), 'MMM d, yyyy') : 'N/A'}
+                            </td>
+                          </tr>
+
+                          {/* Expandable Sessions Row */}
+                          {expandedVolunteerId === volunteer.userId && (
+                            <tr className="bg-orange-50 dark:bg-slate-700/30">
+                              <td colSpan={6} className="px-2 sm:px-4 py-4">
+                                <div className="bg-white dark:bg-slate-800 rounded-xl border-2 border-orange-200 dark:border-slate-600 p-4">
+                                  <div className="flex items-center gap-2 mb-4">
+                                    <Users2 className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                                    <h4 className="font-bold text-slate-800 dark:text-white">
+                                      {user.name}'s Sessions ({volunteer.sessions.length})
+                                    </h4>
+                                  </div>
+                                  <div className="space-y-3">
+                                    {volunteer.sessions.map((session: any) => (
+                                      <Link
+                                        key={session.id}
+                                        to={`/sessions/${session.instanceId}`}
+                                        className="block bg-orange-50 dark:bg-slate-700 p-3 sm:p-4 rounded-lg border border-orange-200 dark:border-slate-600 hover:bg-orange-100 dark:hover:bg-slate-600 transition-colors"
+                                      >
+                                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                                          <div className="flex-1">
+                                            <div className="font-medium text-slate-800 dark:text-white">
+                                              {session.sessionDate ? format(session.sessionDate, 'MMM d, yyyy h:mm a') : 'Date TBD'}
+                                            </div>
+                                            <div className="text-sm text-slate-600 dark:text-slate-400">
+                                              {session.sessionLocation}
+                                            </div>
+                                            {session.sessionDescription && (
+                                              <div className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                                                {session.sessionDescription}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div className="text-right sm:text-right sm:ml-4">
+                                            <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
+                                              Confirmed
+                                            </span>
+                                            {session.hoursEarned && (
+                                              <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
+                                                {session.hoursEarned}h
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </Link>
+                                    ))}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -600,7 +604,7 @@ export default function EventDetail() {
                 <span className="font-medium">Category:</span>
                 <span className="font-bold text-orange-600 dark:text-orange-400">{event.category}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-right">
                 <span className="font-medium">Chapters:</span>
                 <span>{event.chapters.join(', ')}</span>
               </div>

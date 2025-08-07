@@ -252,8 +252,8 @@ export default function SessionDetail() {
                             )}
                             {
                                 signup.hoursEarned &&
-                                <div className="bg-slate-100 dark:bg-slate-900/30 text-slate-500 dark:text-slate-300 px-2 py-1 rounded text-xs font-medium mt-1">
-                                    {signup.hoursEarned} hours
+                                <div className="bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded text-xs text-center mt-1 px-2 py-1">
+                                    {signup.hoursEarned}h
                                 </div>
                             }
                         </div>
@@ -448,10 +448,10 @@ export default function SessionDetail() {
                             </div>
                         </div>
 
-                        <div className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                             <MapPin className="w-5 h-5 mt-1" />
                             <div>
-                                <p className="font-medium">{sessionData.location}</p>
+                               {sessionData.location}
                             </div>
                         </div>
                     </div>

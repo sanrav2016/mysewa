@@ -201,26 +201,30 @@ export default function Leaderboard() {
       </div>
 
       {/* Filters */}
-      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-orange-200 dark:border-slate-600 sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_32px)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6 border-4"}`}>
-        <div className="flex gap-3 flex-wrap">
+      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-orange-200 dark:border-slate-600 sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-4 sm:p-6 border-4"}`}>
+        <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
           {/* View Type Selector */}
-          {(['individual', 'chapter', 'city'] as const).map((type) => (
-            <button
-              key={type}
-              onClick={() => setViewType(type)}
-              className={`rounded-xl font-medium transition-colors capitalize ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"} ${viewType === type
-                ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
-                : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
-                }`}
-            >
-              {type}
-            </button>
-          ))}
+          <div className="flex gap-2 flex-wrap">
+            {(['individual', 'chapter', 'city'] as const).map((type) => (
+              <button
+                key={type}
+                onClick={() => setViewType(type)}
+                className={`rounded-xl font-medium transition-colors capitalize text-sm ${stickyControls ? "px-3 py-2" : "px-3 sm:px-4 py-2"} ${viewType === type
+                  ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
+                  : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
+                  }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+
+          <div className="overflow-x-auto w-full flex gap-3">
 
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortBy)}
-            className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
+            className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm ${stickyControls ? "px-3 py-2" : "px-3 sm:px-4 py-2"}`}
           >
             <option value="hours">Sort by Hours</option>
             <option value="events">Sort by Events</option>
@@ -231,7 +235,7 @@ export default function Leaderboard() {
               <select
                 value={filterBy}
                 onChange={(e) => setFilterBy(e.target.value as FilterBy)}
-                className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
+                className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm ${stickyControls ? "px-3 py-2" : "px-3 sm:px-4 py-2"}`}
               >
                 <option value="all">All Roles</option>
                 <option value="student">Students</option>
@@ -242,7 +246,7 @@ export default function Leaderboard() {
               <select
                 value={chapterFilter}
                 onChange={(e) => setChapterFilter(e.target.value)}
-                className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
+                className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm ${stickyControls ? "px-3 py-2" : "px-3 sm:px-4 py-2"}`}
               >
                 <option value="all">All Chapters</option>
                 {chapters.map(chapter => (
@@ -253,7 +257,7 @@ export default function Leaderboard() {
               <select
                 value={cityFilter}
                 onChange={(e) => setCityFilter(e.target.value)}
-                className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
+                className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm ${stickyControls ? "px-3 py-2" : "px-3 sm:px-4 py-2"}`}
               >
                 <option value="all">All Cities</option>
                 {cities.map(city => (
@@ -262,11 +266,12 @@ export default function Leaderboard() {
               </select>
             </>
           )}
+          </div>
         </div>
       </div>
 
       {/* Leaderboard */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-4 sm:p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
         <div className="space-y-4">
           {displayData.length === 0 ? (
             <div className="text-center py-12">
@@ -287,7 +292,7 @@ export default function Leaderboard() {
                     className="block"
                   >
                     <div
-                      className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all hover:scale-102 group backdrop-blur-md bg-opacity-60 overflow-hidden
+                      className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl border-2 transition-all hover:scale-102 group backdrop-blur-md bg-opacity-60 overflow-hidden
     ${rank === 1
                           ? 'bg-yellow-100/60 dark:bg-yellow-300/10 border-yellow-500 shadow-[0_4px_30px_rgba(255,215,0,0.4)]'
                           : rank === 2
@@ -297,7 +302,7 @@ export default function Leaderboard() {
                               : 'border-orange-200 dark:border-slate-500 hover:bg-orange-50 dark:hover:bg-slate-700'
                         }`}
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 sm:gap-4">
                         {
                           rank <= 3 ?
                             <div className="w-6 h-6 relative">
@@ -337,12 +342,12 @@ export default function Leaderboard() {
                         </div>
                       </div>
 
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
+                          <h3 className="text-lg font-bold text-slate-800 dark:text-white truncate">
                             {user.name}
                           </h3>
-                          <span className={`px-3 py-1 rounded-lg text-sm font-medium capitalize ${user.role === 'admin'
+                          <span className={`px-3 py-1 rounded-lg inline-block text-sm font-medium w-auto capitalize ${user.role === 'admin'
                             ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                             : user.role === 'parent'
                               ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
@@ -351,8 +356,8 @@ export default function Leaderboard() {
                             {user.role}
                           </span>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
-                          <span>{user.email}</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-slate-600 dark:text-slate-300">
+                          <span className="truncate">{user.email}</span>
                           {user.chapter && (
                             <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
                               {user.chapter}
@@ -367,18 +372,18 @@ export default function Leaderboard() {
                       </div>
 
                       <div className="text-right">
-                        <div className="flex items-center gap-6">
+                        <div className="flex justify-center sm:items-center gap-6">
                           <div className="text-center">
-                            <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                            <div className="flex items-center justify-center gap-1 text-blue-600 dark:text-blue-400">
                               <Clock className="w-4 h-4" />
-                              <span className="text-2xl font-bold">{user.calculatedHours}</span>
+                              <span className="text-xl sm:text-2xl font-bold">{user.calculatedHours}</span>
                             </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400">hours</p>
                           </div>
                           <div className="text-center">
-                            <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                            <div className="flex items-center justify-center gap-1 text-green-600 dark:text-green-400">
                               <Calendar className="w-4 h-4" />
-                              <span className="text-2xl font-bold">{user.completedEvents}</span>
+                              <span className="text-xl sm:text-2xl font-bold">{user.completedEvents}</span>
                             </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400">events</p>
                           </div>
@@ -392,40 +397,40 @@ export default function Leaderboard() {
                 return (
                   <div
                     key={location.name}
-                    className="flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-orange-200 dark:border-slate-500 hover:bg-orange-50 dark:hover:bg-slate-700 transition-all hover:scale-102 group"
+                    className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl border-2 border-dashed border-orange-200 dark:border-slate-500 hover:bg-orange-50 dark:hover:bg-slate-700 transition-all hover:scale-102 group"
                   >
-                    <div className="flex w-full items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
                       {getRankIcon(rank)}
                       <div className={`w-12 h-12 bg-gradient-to-br ${getRankColor(rank)} rounded-xl flex items-center justify-center text-white font-bold transform transition-all group-hover:rotate-6`}>
                         {viewType === 'chapter' ? <Building className="w-6 h-6" /> : <MapPin className="w-6 h-6" />}
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">
-                          {location.name}
-                        </h3>
-                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300">
-                          <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
-                            {location.memberCount} members
-                          </span>
-                          <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
-                            {location.avgHours} hours on average
-                          </span>
-                        </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1 truncate">
+                        {location.name}
+                      </h3>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-slate-600 dark:text-slate-300">
+                        <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
+                          {location.memberCount} members
+                        </span>
+                        <span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">
+                          {location.avgHours} hours on average
+                        </span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="flex items-center gap-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
                         <div className="text-center">
-                          <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                          <div className="flex items-center justify-center gap-1 text-blue-600 dark:text-blue-400">
                             <Clock className="w-4 h-4" />
-                            <span className="text-2xl font-bold">{location.totalHours}</span>
+                            <span className="text-xl sm:text-2xl font-bold">{location.totalHours}</span>
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400">hours</p>
                         </div>
                         <div className="text-center">
-                          <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                          <div className="flex items-center justify-center gap-1 text-green-600 dark:text-green-400">
                             <Calendar className="w-4 h-4" />
-                            <span className="text-2xl font-bold">{location.totalEvents}</span>
+                            <span className="text-xl sm:text-2xl font-bold">{location.totalEvents}</span>
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400">events</p>
                         </div>

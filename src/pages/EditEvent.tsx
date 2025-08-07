@@ -487,7 +487,7 @@ export default function EditEvent() {
 
                 <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
                     {/* Action Buttons */}
-                    <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-lg border-orange-200 dark:border-slate-600 sticky top-0 z-50 border-dashed transition-all ${stickyControls ? "rounded-none border-0 border-b-2 -mx-4 lg:-mx-8 w-[calc(100%_+_32px)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6 border-2"}`}>
+                    <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-lg border-orange-200 dark:border-slate-600 sticky top-0 z-50 border-dashed transition-all ${stickyControls ? "rounded-none border-0 border-b-2 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6 border-2"}`}>
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div className="text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
                                 <span>Status:</span>
@@ -681,8 +681,8 @@ export default function EditEvent() {
 
                     {/* Event Instances */}
                     <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-lg shadow-lg border-2 border-dashed border-orange-200 dark:border-slate-600">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white font-caveat">
+                        <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-2">
+                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white font-caveat w-full text-left">
                                 {isEditingSession ? 'Session Details' : 'Event Sessions'}
                             </h2>
                             {!isEditingSession && (

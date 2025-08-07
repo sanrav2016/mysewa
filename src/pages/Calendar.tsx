@@ -395,7 +395,7 @@ export default function Calendar() {
       </div>
 
       {/* Controls */}
-      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg transition-all border-orange-200 dark:border-slate-600 w-full sticky top-0 z-50 ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_32px)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "border-4 p-6"}`}>
+      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg transition-all border-orange-200 dark:border-slate-600 w-full sticky top-0 z-50 ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "border-4 p-6"}`}>
         <div className={stickyControls ? "space-y-3" : "space-y-4"}>
           {/* Date Navigation + View Type */}
           <div className="flex flex-col lg:flex-row justify-between gap-4 items-center">
