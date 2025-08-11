@@ -1,14 +1,15 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'student' | 'parent' | 'admin';
+  requiredRole?: 'STUDENT' | 'PARENT' | 'ADMIN';
 }
 
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -19,7 +20,9 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Redirect to login with the intended destination as query parameter
+    const redirectPath = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?redirect=${redirectPath}`} replace />;
   }
 
   if (requiredRole && user.role !== requiredRole) {

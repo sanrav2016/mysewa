@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Search, Filter, MapPin, Users, Calendar as CalendarIcon, User } from 'lucide-react';
-import { mockEvents, mockSignups } from '../data/mockData';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, addDays, startOfDay, endOfDay, setHours } from 'date-fns';
+import { formatLocalDate } from '../utils/dateUtils';
+import { eventsAPI, signupsAPI } from '../services/api';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 type ViewType = 'month' | 'week' | 'day';
 
@@ -15,6 +18,9 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [liveDate, setLiveDate] = useState(new Date());
   const [stickyControls, setStickyControls] = useState(false);
+  const [events, setEvents] = useState<any[]>([]);
+  const [signups, setSignups] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     window.addEventListener('scroll', () => {
@@ -28,10 +34,31 @@ export default function Calendar() {
     return () => clearInterval(interval);
   }, [])
 
-  const categories = Array.from(new Set(mockEvents.map(e => e.category)));
+  // Load events and signups from API
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [eventsResponse, signupsResponse] = await Promise.all([
+          eventsAPI.getAll(),
+          signupsAPI.getAll()
+        ]);
+        setEvents(eventsResponse.events || []);
+        setSignups(signupsResponse.signups || []);
+      } catch (error) {
+        console.error('Failed to load calendar data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const categories = Array.from(new Set(events.map(e => e.category)));
 
   // Get user's signups for filtering
-  const userSignups = mockSignups.filter(signup => signup.userId === user?.id);
+  const userSignups = signups.filter(signup => signup.userId === user?.id);
   const userEventIds = userSignups.map(signup => signup.eventId);
 
   // Get date ranges based on view type
@@ -70,10 +97,12 @@ export default function Calendar() {
   const { start: rangeStart, end: rangeEnd, days } = getDateRange();
 
   // Get all event instances for the current range
-  const rangeEvents = mockEvents
+  const rangeEvents = events
     .flatMap(event =>
       event.instances
         .filter(instance => {
+          // Only include instances with valid start dates
+          if (!instance.startDate) return false;
           const instanceDate = new Date(instance.startDate);
           return instanceDate >= rangeStart && instanceDate <= rangeEnd;
         })
@@ -167,16 +196,16 @@ export default function Calendar() {
               <div
                 key={normalizedDay.toISOString()}
                 onClick={() => handleDayClick(normalizedDay)}
-                className={`transition-all min-h-16 md:min-h-24 p-1 lg:p-2 rounded-lg border-2 border-solid cursor-pointer
+                className={`transition-all min-h-16 md:min-h-24 p-1 lg:p-2 rounded-lg border cursor-pointer
                   ${isCurrentMonth
-                    ? 'bg-white dark:bg-slate-700 border-orange-200 dark:border-slate-600 hover:bg-orange-50 dark:hover:bg-slate-600'
+                    ? 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600'
                     : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                   }
-                  ${isToday ? 'ring-2 ring-orange-400 dark:ring-orange-500' : ''}
+                  ${isToday ? 'ring-2 ring-indigo-400 dark:ring-indigo-500' : ''}
                 `}
               >
                 <div className={`text-xs lg:text-sm font-semibold mb-1 lg:mb-2 ${isToday
-                  ? 'text-orange-600 dark:text-orange-400'
+                  ? 'text-indigo-600 dark:text-indigo-400'
                   : isCurrentMonth
                     ? 'text-slate-800 dark:text-white'
                     : 'text-slate-400 dark:text-slate-500'
@@ -188,11 +217,11 @@ export default function Calendar() {
                   {dayEvents.slice(0, 1).map(event => (
                     <div
                       key={event.id}
-                      className="text-xs p-1 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 font-medium truncate"
+                      className="text-xs p-1 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 font-medium truncate"
                       title={`${event.eventTitle} at ${event.location}`}
                     >
                       <div className="hidden lg:block">
-                        {format(new Date(event.startDate), 'h:mm a')} - {event.eventTitle}
+                        {event.startDate ? formatLocalDate(event.startDate, 'h:mm a') + ' - ' : ''}{event.eventTitle}
                       </div>
                       <div className="lg:hidden">
                         {event.eventTitle}
@@ -242,7 +271,7 @@ export default function Calendar() {
             <div
               key={day.toISOString()}
               onClick={() => handleDayClick(day)}
-              className={`min-h-[120px] lg:min-h-[160px] p-2 lg:p-3 rounded-lg border-2 border-dashed transition-colors duration-200 cursor-pointer bg-white dark:bg-slate-700 border-orange-200 dark:border-slate-600 hover:bg-orange-50 dark:hover:bg-slate-600 ${isToday ? 'ring-2 ring-orange-400 dark:ring-orange-500' : ''
+              className={`min-h-[120px] lg:min-h-[160px] p-2 lg:p-3 rounded-lg border-2  transition-colors duration-200 cursor-pointer bg-white dark:bg-slate-700 border-orange-200 dark:border-slate-600 hover:bg-orange-50 dark:hover:bg-slate-600 ${isToday ? 'ring-2 ring-orange-400 dark:ring-orange-500' : ''
                 }`}
             >
               <div className="lg:hidden mb-2">
@@ -260,9 +289,11 @@ export default function Calendar() {
                     <div className="font-semibold text-xs lg:text-sm truncate">
                       {event.eventTitle}
                     </div>
-                    <div className="text-xs lg:text-sm">
-                      {format(new Date(event.startDate), 'h:mm a')}
-                    </div>
+                    {event.startDate && (
+                      <div className="text-xs lg:text-sm">
+                        {formatLocalDate(event.startDate, 'h:mm a')}
+                      </div>
+                    )}
                     <div className="text-xs truncate">
                       {event.location}
                     </div>
@@ -286,20 +317,24 @@ export default function Calendar() {
 
     // Sort events by start time
     const sortedEvents = [...dayEvents].sort(
-      (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+                  (a, b) => {
+              const aDate = a.startDate ? new Date(a.startDate).getTime() : 0;
+              const bDate = b.startDate ? new Date(b.startDate).getTime() : 0;
+              return aDate - bDate;
+            }
     );
 
     // Group events into columns to handle overlaps
     const columns: any[][] = [];
 
     sortedEvents.forEach(event => {
-      const start = new Date(event.startDate).getTime();
-      const end = new Date(event.endDate).getTime();
+              const start = event.startDate ? new Date(event.startDate).getTime() : 0;
+      const end = event.endDate ? new Date(event.endDate).getTime() : start;
 
       let placed = false;
       for (const col of columns) {
         const lastInCol = col[col.length - 1];
-        const lastEnd = new Date(lastInCol.endDate).getTime();
+        const lastEnd = lastInCol.endDate ? new Date(lastInCol.endDate).getTime() : (lastInCol.startDate ? new Date(lastInCol.startDate).getTime() : 0);
         if (start >= lastEnd) {
           col.push(event);
           placed = true;
@@ -313,7 +348,7 @@ export default function Calendar() {
     const hours = Array.from({ length: 17 }, (_, i) => i + 6);
 
     return (
-      <div className="bg-white dark:bg-slate-700 p-4 rounded-lg border-2 border-dashed border-orange-200 dark:border-slate-500 overflow-x-auto">
+      <div className="bg-white dark:bg-slate-700 p-4 rounded-lg border-2  border-orange-200 dark:border-slate-500 overflow-x-auto">
         <h3 className="text-lg lg:text-xl font-bold text-slate-800 dark:text-white mb-3">
           Events for {format(currentDate, 'EEEE, MMMM d, yyyy')}
         </h3>
@@ -326,7 +361,7 @@ export default function Calendar() {
           <div className="relative w-full border-l border-slate-300 dark:border-slate-500 pl-12">
             {
               isSameDay(liveDate, currentDate) && hours.includes(liveDate.getHours()) &&
-              <div className="transition-all absolute h-1 border-dashed border-t-2 border-slate-300 dark:border-slate-500 w-full left-0" style={{ top: `${(liveDate.getHours() + liveDate.getMinutes() / 60 - 6) * 64 - 1}px` }}>
+              <div className="transition-all absolute h-1  border-t-2 border-slate-300 dark:border-slate-500 w-full left-0" style={{ top: `${(liveDate.getHours() + liveDate.getMinutes() / 60 - 6) * 64 - 1}px` }}>
                 <span className="absolute text-xs bottom-full mb-1 right-0 font-bold text-slate-300 dark:text-slate-500">{format(liveDate, 'h:mm a')}</span>
               </div>
             }
@@ -335,7 +370,7 @@ export default function Calendar() {
             {hours.map(hour => (
               <div
                 key={hour}
-                className="h-16 border-b border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 text-sm absolute left-0 w-full pl-1 pt-1 text-left"
+                className="h-16 border-b  border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 text-sm absolute left-0 w-full pl-1 pt-1 text-left"
                 style={{ top: `${(hour - 6) * 64}px` }}
               >
                 {format(new Date(0, 0, 0, hour), 'h a')}
@@ -346,8 +381,8 @@ export default function Calendar() {
             <div style={{ height: `${64 * hours.length}px` }} className="relative">
               {columns.map((col, colIdx) =>
                 col.map(event => {
-                  const start = new Date(event.startDate);
-                  const end = new Date(event.endDate);
+                  const start = event.startDate ? new Date(event.startDate) : new Date();
+                  const end = event.endDate ? new Date(event.endDate) : start;
                   const top = ((start.getHours() + start.getMinutes() / 60) - 6) * 64;
                   const height = ((end.getTime() - start.getTime()) / (1000 * 60 * 60)) * 64;
                   const widthPercent = 100 / columns.length;
@@ -364,12 +399,13 @@ export default function Calendar() {
                         width: `${widthPercent}%`
                       }}
                     >
-                      <div className="p-2 rounded-lg bg-orange-200/40 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 text-sm shadow-md h-full">
-                        <div className="font-semibold">{event.eventTitle}</div>
+                      <div className="p-2 rounded-lg bg-indigo-200/40 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 text-sm shadow-md h-full overflow-hidden">
+                        <Link to={`/events/${event.eventId}`} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                          <span className="font-semibold">{event.eventTitle}</span>
+                        </Link>
                         <div className="text-xs">
-                          {format(start, 'h:mm a')} - {format(end, 'h:mm a')}
+                          {formatLocalDate(start, 'h:mm a')} - {formatLocalDate(end, 'h:mm a')}
                         </div>
-                        <div className="text-xs truncate">{event.location}</div>
                       </div>
                     </div>
                   );
@@ -385,8 +421,8 @@ export default function Calendar() {
   return (
     <div className="space-y-6 relative p-4 lg:p-8">
       {/* Header */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
-        <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 font-caveat">
+      <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50">
+        <h1 className="text-2xl font-semibold text-slate-800 dark:text-white mb-2">
           Event Calendar
         </h1>
         <p className="text-slate-600 dark:text-slate-300">
@@ -395,7 +431,7 @@ export default function Calendar() {
       </div>
 
       {/* Controls */}
-      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg transition-all border-orange-200 dark:border-slate-600 w-full sticky top-0 z-50 ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "border-4 p-6"}`}>
+      <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 w-full sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
         <div className={stickyControls ? "space-y-3" : "space-y-4"}>
           {/* Date Navigation + View Type */}
           <div className="flex flex-col lg:flex-row justify-between gap-4 items-center">
@@ -403,15 +439,15 @@ export default function Calendar() {
             <div className="flex items-center gap-3 flex-1 w-full">
               <button
                 onClick={() => navigateDate('prev')}
-                className={`${stickyControls ? "p-1" : "p-2"} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-xl border border-orange-300 dark:border-orange-700 hover:scale-105 cursor-pointer transition-all`}>
+                className={`${stickyControls ? "p-1" : "p-2"} bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg border border-indigo-300 dark:border-indigo-700 hover:scale-105 cursor-pointer transition-all`}>
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white flex-1 text-center">
+              <h2 className="text-lg font-semibold text-slate-800 dark:text-white flex-1 text-center">
                 {getViewTitle()}
               </h2>
               <button
                 onClick={() => navigateDate('next')}
-                className={`${stickyControls ? "p-1" : "p-2"} bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-xl border border-orange-300 dark:border-orange-700 hover:scale-105 cursor-pointer transition-all`}
+                className={`${stickyControls ? "p-1" : "p-2"} bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg border border-indigo-300 dark:border-indigo-700 hover:scale-105 cursor-pointer transition-all`}
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -423,9 +459,9 @@ export default function Calendar() {
                 <button
                   key={view}
                   onClick={() => setViewType(view)}
-                  className={`transform transition-all hover:scale-105 px-4 py-2 rounded-xl font-medium ${stickyControls ? "text-sm" : "text-base"} ${viewType === view
-                    ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white border-orange-400 rotate-1'
-                    : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-slate-600'
+                  className={`transition-all hover:scale-105 px-3 py-2 rounded-lg font-medium text-sm ${viewType === view
+                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-sm'
+                    : 'bg-indigo-100 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300'
                     }`}
                 >
                   {view.charAt(0).toUpperCase() + view.slice(1)}
@@ -481,10 +517,18 @@ export default function Calendar() {
       </div>
 
       {/* Calendar View */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
-        {viewType === 'month' && renderMonthView()}
-        {viewType === 'week' && renderWeekView()}
-        {viewType === 'day' && renderDayView()}
+      <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50">
+        {loading ? (
+          <div className="text-center py-12">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : (
+          <>
+            {viewType === 'month' && renderMonthView()}
+            {viewType === 'week' && renderWeekView()}
+            {viewType === 'day' && renderDayView()}
+          </>
+        )}
       </div>
     </div>
 

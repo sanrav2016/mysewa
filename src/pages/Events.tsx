@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Calendar, MapPin, Users, Clock, ArrowRight } from 'lucide-react';
-import { mockEvents } from '../data/mockData';
+import { eventsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { format } from 'date-fns';
+import LoadingSpinner from '../components/LoadingSpinner';
+import EventInstanceDisplay from '../components/EventInstanceDisplay';
 
 export default function Events() {
   const { user } = useAuth();
@@ -11,12 +13,64 @@ export default function Events() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'category'>('date');
   const [stickyControls, setStickyControls] = useState(false);
+  const [events, setEvents] = useState<any[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  window.addEventListener('scroll', () => {
-    setStickyControls(window.scrollY > document.getElementById("controls")!.offsetHeight);
-  })
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        setOffset(0);
+        const response = await eventsAPI.getAll({
+          search,
+          category: categoryFilter,
+          sortBy: sortBy === 'date' ? 'startDate' : sortBy,
+          sortOrder: 'asc'
+        });
+        setEvents(response.events);
+        setHasMore(response.events.length >= 10);
 
-  const categories = Array.from(new Set(mockEvents.map(e => e.category)));
+        // Extract unique categories
+        const uniqueCategories = Array.from(new Set(response.events.map((e: any) => e.category))).filter(Boolean) as string[];
+        setCategories(uniqueCategories);
+      } catch (error) {
+        console.error('Failed to fetch events:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, [search, categoryFilter, sortBy]);
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+    setOffset(prev => prev + 10);
+    setLoadingMore(false);
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const controlsElement = document.getElementById("controls");
+      if (controlsElement) {
+        setStickyControls(window.scrollY > controlsElement.offsetHeight);
+      }
+
+      // Infinite scroll detection
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100) {
+        loadMore();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [offset, hasMore, loadingMore, search, categoryFilter, sortBy]);
 
   const convert = (html: string) => {
     const tempDiv = document.createElement('div');
@@ -24,58 +78,23 @@ export default function Events() {
     return tempDiv.textContent || '';
   }
 
-  // Filter and sort events
-  const filteredEvents = mockEvents
-    .filter(event => {
-      // Hide archived events from non-admins
-      if (user?.role !== 'admin' && event.status === 'archived') {
-        return false;
-      }
-      // Hide draft events from non-admins
-      if (user?.role !== 'admin' && event.status === 'draft') {
-        return false;
-      }
-      return true;
-    })
-    .filter(event => {
-      const matchesSearch = search === '' ||
-        event.title.toLowerCase().includes(search.toLowerCase()) ||
-        convert(event.description).toLowerCase().includes(search.toLowerCase()) ||
-        event.category.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = categoryFilter === 'all' || event.category === categoryFilter;
-      return matchesSearch && matchesCategory;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'title':
-          return a.title.localeCompare(b.title);
-        case 'category':
-          return a.category.localeCompare(b.category);
-        case 'date':
-        default:
-          const aNextInstance = a.instances.find(i => new Date(i.startDate) > new Date());
-          const bNextInstance = b.instances.find(i => new Date(i.startDate) > new Date());
-          if (!aNextInstance && !bNextInstance) return 0;
-          if (!aNextInstance) return 1;
-          if (!bNextInstance) return -1;
-          return new Date(aNextInstance.startDate).getTime() - new Date(bNextInstance.startDate).getTime();
-      }
-    });
+  const displayedEvents = events.slice(0, offset + 10);
+  const hasMoreEvents = offset + 10 < events.length;
 
   return (
     <div className="space-y-6 relative p-4 lg:p-8">
       {/* Header */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
-        <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 transform">
+      <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50">
+        <h1 className="text-2xl font-semibold text-slate-800 dark:text-white mb-2">
           All Events
         </h1>
-        <p className="text-slate-600 dark:text-slate-300 transform">
+        <p className="text-slate-600 dark:text-slate-300">
           Discover volunteer opportunities and make a difference
         </p>
       </div>
 
       {/* Filters */}
-      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg transform border-orange-200 dark:border-slate-600 sticky w-full top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "border-4 p-6"}`}>
+      <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 sticky w-full top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -117,93 +136,81 @@ export default function Events() {
 
       {/* Events Grid */}
       <div>
-        {filteredEvents.length === 0 ? (
+        {loading ? (
+          <div className="col-span-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-12 rounded-2xl shadow-lg text-center transform border-4 border-orange-200 dark:border-slate-600">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : events.length === 0 ? (
           <div className="col-span-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-12 rounded-2xl shadow-lg text-center transform border-4 border-orange-200 dark:border-slate-600">
             <p className="text-slate-600 dark:text-slate-300 text-lg">
               No events found matching your criteria
             </p>
           </div>
-        ) : <div className="columns-1 md:columns-2 gap-6">
-          {
-            filteredEvents.map((event, i) => {
-              const nextInstance = event.instances.find(i => new Date(i.startDate) > new Date());
-              const totalSignups = nextInstance
-                ? nextInstance.studentSignups.length + nextInstance.parentSignups.length
-                : 0;
-              const totalCapacity = nextInstance
-                ? nextInstance.studentCapacity + nextInstance.parentCapacity
-                : 0;
+        ) : (
+          <>
+            <div className="columns-1 md:columns-2 gap-6">
+              {
+                events.map((event: any, i: number) => {
+                  const nextInstance = event.instances.find((i: any) => i.startDate && new Date(i.startDate) > new Date());
 
-              return (
-                <Link to={`/events/${event.id}`}>
-                  <div
-                    key={event.id}
-                    className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600 transform transition-all hover:scale-102 hover:shadow-xl group break-inside-avoid mb-6 space-y-4"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className={`w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center text-white font-bold transform transition-all ${i % 2 == 1 ? "group-hover:rotate-6" : "group-hover:-rotate-6"}`}>
-                        {event.title.charAt(0)}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
-                          {event.title}
-                        </h3>
-                        <p className="text-slate-600 dark:text-slate-300 text-sm mb-3 line-clamp-2">
-                          {convert(event.description)}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-lg text-sm font-medium">
-                            {event.category}
-                          </span>
-                          {event.isRecurring && (
-                            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-lg text-sm font-medium">
-                              Recurring
-                            </span>
-                          )}
-                          {user?.role === 'admin' && event.status !== 'published' && (
-                            <span className={`px-3 py-1 rounded-lg text-sm font-medium capitalize ${event.status === 'draft'
-                                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
-                                : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
-                              }`}>
-                              {event.status}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {nextInstance && (
-                      <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl mb-4 transform">
-                        <h4 className="font-semibold text-slate-800 dark:text-white mb-2">Next Session:</h4>
-                        <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            {format(new Date(nextInstance.startDate), 'MMM d, yyyy h:mm a')}
+                  return (
+                    <Link key={event.id} to={`/events/${event.id}`}>
+                      <div
+                        className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700/50 transition-all hover:scale-[1.02] hover:shadow-xl group break-inside-avoid mb-4 space-y-4"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-semibold text-sm transition-all hover:scale-105">
+                            {event.title.charAt(0)}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            {nextInstance.location}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4" />
-                            {totalSignups}/{totalCapacity} spots filled
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-2">
+                              {event.title}
+                            </h3>
+                            <p className="text-slate-600 dark:text-slate-300 text-xs mb-3 line-clamp-2">
+                              {convert(event.description)}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 px-2 py-0.5 rounded-full text-xs font-medium">
+                                {event.category}
+                              </span>
+                              {event.isRecurring && (
+                                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full text-xs font-medium">
+                                  Recurring
+                                </span>
+                              )}
+                              {user?.role === 'ADMIN' && event.status !== 'PUBLISHED' && (
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${event.status === 'DRAFT'
+                                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+                                  : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
+                                  }`}>
+                                  {event.status.toLowerCase()}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
 
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-slate-500 dark:text-slate-400">
-                        {event.instances.length} session{event.instances.length !== 1 ? 's' : ''} available
+                        {nextInstance && (
+                          <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                            <h4 className="font-medium text-slate-800 dark:text-white mb-1 text-sm">Next Session:</h4>
+                            <EventInstanceDisplay instance={nextInstance} />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })
-          }
-        </div>
-        }
+                    </Link>
+                  );
+                })
+              }
+            </div>
+            {loadingMore && (
+              <div className="text-center py-8">
+                <p className="text-slate-600 dark:text-slate-300 text-lg">
+                  Loading more events...
+                </p>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

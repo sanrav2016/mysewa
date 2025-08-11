@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Calendar, Plus, Edit, Trash2, Search, Filter, UserPlus, Building, MapPin, Mail, Phone, ChevronDown, Upload, FileText, Download, SortAsc, SortDesc } from 'lucide-react';
+import { Users, Calendar, Plus, Edit, Trash2, Search, Filter, UserPlus, Building, MapPin, Mail, Phone, ChevronDown, Upload, FileText, Download, SortAsc, SortDesc, History } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
-import { mockUsers, mockEvents, chapters, cities } from '../data/mockData';
-import { format } from 'date-fns';
+import { usersAPI, eventsAPI } from '../services/api';
+import { formatLocalDate } from '../utils/dateUtils';
 
 export default function AdminDashboard() {
   const { addNotification } = useNotification();
   const [activeTab, setActiveTab] = useState<'users' | 'events'>('users');
   const [stickyControls, setStickyControls] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [chapters, setChapters] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // User filters and sorting
   const [userSearch, setUserSearch] = useState('');
@@ -26,11 +31,10 @@ export default function AdminDashboard() {
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
-    role: 'student' as 'student' | 'parent' | 'admin',
+    role: 'STUDENT' as 'STUDENT' | 'PARENT' | 'ADMIN',
     phone: '',
     chapter: '',
-    city: '',
-    emergencyContact: ''
+    city: ''
   });
 
   useEffect(() => {
@@ -45,8 +49,40 @@ export default function AdminDashboard() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Load data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [usersData, eventsData] = await Promise.all([
+          usersAPI.getAll(),
+          eventsAPI.getAll()
+        ]);
+
+        const allUsers = usersData.users || [];
+        const allEvents = eventsData.events || [];
+
+        setUsers(allUsers);
+        setEvents(allEvents);
+
+        // Extract unique chapters and cities
+        const uniqueChapters = Array.from(new Set(allUsers.map((u: any) => u.chapter).filter(Boolean))) as string[];
+        const uniqueCities = Array.from(new Set(allUsers.map((u: any) => u.city).filter(Boolean))) as string[];
+
+        setChapters(uniqueChapters);
+        setCities(uniqueCities);
+      } catch (error) {
+        console.error('Failed to load admin data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
   // Filter and sort users
-  const filteredUsers = mockUsers
+  const filteredUsers = users
     .filter(user => {
       const matchesSearch = user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
         user.email.toLowerCase().includes(userSearch.toLowerCase());
@@ -78,7 +114,7 @@ export default function AdminDashboard() {
     });
 
   // Filter and sort events
-  const filteredEvents = mockEvents
+  const filteredEvents = events
     .filter(event => {
       const matchesSearch = event.title.toLowerCase().includes(eventSearch.toLowerCase()) ||
         event.category.toLowerCase().includes(eventSearch.toLowerCase());
@@ -109,42 +145,94 @@ export default function AdminDashboard() {
       return eventSortOrder === 'asc' ? comparison : -comparison;
     });
 
-  const handleAddUser = () => {
+  const handleAddUser = async () => {
     if (!newUser.name || !newUser.email) {
       addNotification('error', 'Error', 'Please fill in required fields');
       return;
     }
 
-    console.log('Adding new user:', newUser);
-    addNotification('success', 'Success!', 'User added successfully!');
-    setNewUser({
-      name: '',
-      email: '',
-      role: 'student',
-      phone: '',
-      chapter: '',
-      city: '',
-      emergencyContact: ''
-    });
-    setAddUserMethod(null);
-    setShowAddUserDropdown(false);
+    try {
+      // For now, we'll use the auth register endpoint since there's no direct user creation endpoint
+      // In a real app, you'd have a separate admin endpoint for creating users
+      const response = await fetch(import.meta.env.VITE_API_URL + '/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          password: 'temporary123', // You'd want to generate a random password
+          role: newUser.role,
+          phone: newUser.phone,
+          chapter: newUser.chapter,
+          city: newUser.city
+        })
+      });
+
+      if (response.ok) {
+        addNotification('success', 'Success!', 'User added successfully!', false);
+        setNewUser({
+          name: '',
+          email: '',
+          role: 'STUDENT',
+          phone: '',
+          chapter: '',
+          city: ''
+        });
+        setAddUserMethod(null);
+        setShowAddUserDropdown(false);
+        
+        // Reload users data
+        const [usersData] = await Promise.all([usersAPI.getAll()]);
+        const allUsers = usersData.users || [];
+        setUsers(allUsers);
+      } else {
+        const errorData = await response.json();
+        addNotification('error', 'Error', errorData.message || 'Failed to add user', false);
+      }
+    } catch (error) {
+      console.error('Failed to add user:', error);
+      addNotification('error', 'Error', 'Failed to add user. Please try again.', false);
+    }
   };
 
   const handleCSVImport = () => {
     console.log('CSV import functionality would be implemented here');
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     if (confirm('Are you sure you want to delete this user?')) {
-      console.log('Deleting user:', userId);
-      addNotification('success', 'Success!', 'User deleted successfully!');
+      try {
+        await usersAPI.delete(userId);
+        addNotification('success', 'Success!', 'User deleted successfully!', false);
+        
+        // Reload users data
+        const [usersData] = await Promise.all([usersAPI.getAll()]);
+        const allUsers = usersData.users || [];
+        setUsers(allUsers);
+      } catch (error) {
+        console.error('Failed to delete user:', error);
+        addNotification('error', 'Error', 'Failed to delete user. Please try again.', false);
+      }
     }
   };
 
-  const handleDeleteEvent = (eventId: string) => {
+  const handleDeleteEvent = async (eventId: string) => {
     if (confirm('Are you sure you want to delete this event?')) {
-      console.log('Deleting event:', eventId);
-      addNotification('success', 'Success!', 'Event deleted successfully!');
+      try {
+        await eventsAPI.delete(eventId);
+        addNotification('success', 'Success!', 'Event deleted successfully!');
+        
+        // Reload events data
+        const [eventsData] = await Promise.all([eventsAPI.getAll()]);
+        const allEvents = eventsData.events || [];
+        setEvents(allEvents);
+      } catch (error) {
+        console.error('Failed to delete event:', error);
+        addNotification('error', 'Error', 'Failed to delete event. Please try again.');
+      }
     }
   };
 
@@ -179,8 +267,8 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6 p-4 lg:p-8" onClick={() => setShowAddUserDropdown(false)}>
       {/* Header */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
-        <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
+      <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50">
+        <h1 className="text-2xl font-semibold text-slate-800 dark:text-white mb-2">
           Admin Dashboard
         </h1>
         <p className="text-slate-600 dark:text-slate-300">
@@ -189,28 +277,28 @@ export default function AdminDashboard() {
       </div>
 
       {/* Sticky Controls Section */}
-      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg transform border-orange-200 dark:border-slate-600 sticky w-full top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "border-4 p-6"}`}>
+      <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 sticky w-full top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
         {/* Tab Navigation */}
         <div className={`flex gap-4 ${stickyControls ? "mb-3" : "mb-6"}`}>
           <button
             onClick={() => setActiveTab('users')}
-            className={`flex items-center gap-2 rounded-xl font-medium transition-all duration-200 hover:scale-105 border-2 border-dashed whitespace-nowrap ${stickyControls ? "px-3 py-2 text-sm" : "px-6 py-3"} ${activeTab === 'users'
-                ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg border-orange-300'
-                : 'text-slate-700 dark:text-slate-300 hover:bg-orange-100 dark:hover:bg-slate-700 border-transparent hover:border-orange-200 dark:hover:border-slate-600'
+            className={`flex items-center gap-2 rounded-lg font-medium transition-all hover:scale-105 whitespace-nowrap px-3 py-2 text-sm ${activeTab === 'users'
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-sm'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600'
               }`}
           >
             <Users className="w-5 h-5" />
-            Users ({mockUsers.length})
+            Users ({users.length})
           </button>
           <button
             onClick={() => setActiveTab('events')}
-            className={`flex items-center gap-2 rounded-xl font-medium transition-all duration-200 hover:scale-105 whitespace-nowrap border-2 border-dashed ${stickyControls ? "px-3 py-2 text-sm" : "px-6 py-3"} ${activeTab === 'events'
-                ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg border-orange-300'
-                : 'text-slate-700 dark:text-slate-300 hover:bg-orange-100 dark:hover:bg-slate-700 border-transparent hover:border-orange-200 dark:hover:border-slate-600'
+            className={`flex items-center gap-2 rounded-lg font-medium transition-all hover:scale-105 whitespace-nowrap px-3 py-2 text-sm ${activeTab === 'events'
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-sm'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600'
               }`}
           >
             <Calendar className="w-5 h-5" />
-            Events ({mockEvents.length})
+            Events ({events.length})
           </button>
         </div>
 
@@ -226,7 +314,7 @@ export default function AdminDashboard() {
                   placeholder="Search users..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
-                  className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "py-2 text-sm" : "py-3 text-base"}`}
+                  className={`w-full pl-10 pr-4 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "py-2 text-sm" : "py-3 text-base"}`}
                 />
               </div>
             </div>
@@ -238,7 +326,7 @@ export default function AdminDashboard() {
                   e.stopPropagation();
                   setShowAddUserDropdown(!showAddUserDropdown);
                 }}
-                className={`flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white border-2 border-dashed border-green-400 rounded-xl font-medium transition-colors whitespace-nowrap ${stickyControls ? "px-4 py-2 text-sm" : "px-6 py-3 text-base"}`}
+                className={`flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white border-2  border-green-400 rounded-xl font-medium transition-colors whitespace-nowrap ${stickyControls ? "px-4 py-2 text-sm" : "px-6 py-3 text-base"}`}
               >
                 <UserPlus className="w-5 h-5" />
                 <span className="hidden md:block">Add User</span>
@@ -294,7 +382,7 @@ export default function AdminDashboard() {
                   placeholder="Search events..."
                   value={eventSearch}
                   onChange={(e) => setEventSearch(e.target.value)}
-                  className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "py-2 text-sm" : "py-3 text-base"}`}
+                  className={`w-full pl-10 pr-4 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "py-2 text-sm" : "py-3 text-base"}`}
                 />
               </div>
             </div>
@@ -302,7 +390,7 @@ export default function AdminDashboard() {
             {/* Create Event Button */}
             <Link
               to="/create-event"
-              className={`flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white border-2 border-dashed border-green-400 rounded-xl font-medium transition-colors whitespace-nowrap ${stickyControls ? "px-4 py-2 text-sm" : "px-6 py-3 text-base"}`}
+              className={`flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white border-2  border-green-400 rounded-xl font-medium transition-colors whitespace-nowrap ${stickyControls ? "px-4 py-2 text-sm" : "px-6 py-3 text-base"}`}
             >
               <Plus className="w-5 h-5" />
               <span className="hidden md:block">Create Event</span>
@@ -313,13 +401,13 @@ export default function AdminDashboard() {
       </div>
 
       {/* Content Section */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-4 sm:p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
+      <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50">
         {/* Users Tab */}
         {activeTab === 'users' && (
           <div className="space-y-6">
             {/* Add User Forms */}
             {addUserMethod === 'manual' && (
-              <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-slate-700 dark:to-slate-600 p-4 sm:p-6 rounded-xl border-2 border-dashed border-green-200 dark:border-slate-500">
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-slate-700 dark:to-slate-600 p-4 sm:p-6 rounded-xl border-2  border-green-200 dark:border-slate-500">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white">Add New User Manually</h3>
                   <button
@@ -335,35 +423,35 @@ export default function AdminDashboard() {
                     placeholder="Full Name *"
                     value={newUser.name}
                     onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                    className="px-4 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                    className="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
                   />
                   <input
                     type="email"
                     placeholder="Email Address *"
                     value={newUser.email}
                     onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    className="px-4 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                    className="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
                   />
                   <select
                     value={newUser.role}
                     onChange={(e) => setNewUser({ ...newUser, role: e.target.value as any })}
-                    className="px-4 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                    className="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
                   >
-                    <option value="student">Student</option>
-                    <option value="parent">Parent</option>
-                    <option value="admin">Admin</option>
+                    <option value="STUDENT">Student</option>
+                    <option value="PARENT">Parent</option>
+                    <option value="ADMIN">Admin</option>
                   </select>
                   <input
                     type="tel"
                     placeholder="Phone Number"
                     value={newUser.phone}
                     onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                    className="px-4 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                    className="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
                   />
                   <select
                     value={newUser.chapter}
                     onChange={(e) => setNewUser({ ...newUser, chapter: e.target.value })}
-                    className="px-4 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                    className="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
                   >
                     <option value="">Select Chapter</option>
                     {chapters.map(chapter => (
@@ -373,33 +461,24 @@ export default function AdminDashboard() {
                   <select
                     value={newUser.city}
                     onChange={(e) => setNewUser({ ...newUser, city: e.target.value })}
-                    className="px-4 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
+                    className="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
                   >
                     <option value="">Select City</option>
                     {cities.map(city => (
                       <option key={city} value={city}>{city}</option>
                     ))}
                   </select>
-                  {newUser.role === 'parent' && (
-                    <input
-                      type="tel"
-                      placeholder="Emergency Contact"
-                      value={newUser.emergencyContact}
-                      onChange={(e) => setNewUser({ ...newUser, emergencyContact: e.target.value })}
-                      className="px-4 py-2 border-2 border-dashed border-orange-200 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                    />
-                  )}
                 </div>
                 <div className="flex gap-3 mt-4">
                   <button
                     onClick={() => setAddUserMethod(null)}
-                    className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors border-2 border-dashed border-slate-300 dark:border-slate-600"
+                    className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors border-2  border-slate-300 dark:border-slate-600"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAddUser}
-                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors border-2 border-dashed border-green-400"
+                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors border-2  border-green-400"
                   >
                     Add User
                   </button>
@@ -408,7 +487,7 @@ export default function AdminDashboard() {
             )}
 
             {addUserMethod === 'csv' && (
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-slate-700 dark:to-slate-600 p-4 sm:p-6 rounded-xl border-2 border-dashed border-blue-200 dark:border-slate-500">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-slate-700 dark:to-slate-600 p-4 sm:p-6 rounded-xl border-2  border-blue-200 dark:border-slate-500">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white">Import Users from CSV</h3>
                   <button
@@ -420,18 +499,17 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border-2 border-dashed border-blue-200 dark:border-slate-600">
+                  <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border-2  border-blue-200 dark:border-slate-600">
                     <h4 className="font-medium text-slate-800 dark:text-white mb-2">CSV Import Guidelines</h4>
                     <div className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
-                      <p><strong>Required columns:</strong> name, email, role</p>
-                      <p><strong>Optional columns:</strong> phone, chapter, city, emergencyContact</p>
+                      <p><strong>Required columns:</strong> name, email, role, phone, chapter, city</p>
                       <p><strong>Role values:</strong> student, parent, admin</p>
                       <p><strong>File format:</strong> CSV with headers in first row</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <button className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <button className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:shadow-md text-white px-3 py-2 rounded-lg font-medium transition-all hover:scale-105 text-sm">
                       <Upload className="w-4 h-4" />
                       Choose CSV File
                     </button>
@@ -465,7 +543,7 @@ export default function AdminDashboard() {
                 <div className="overflow-hidden">
                   <table className="min-w-full divide-y divide-orange-200 dark:divide-slate-600">
                     <thead>
-                      <tr className="border-b-2 border-dashed border-orange-200 dark:border-slate-600">
+                      <tr className="border-b-2  border-orange-200 dark:border-slate-600">
                         <th className="text-left py-3 px-2 sm:px-4">
                           <button
                             onClick={() => handleUserSort('name')}
@@ -516,7 +594,7 @@ export default function AdminDashboard() {
                     </thead>
                     <tbody className="divide-y divide-orange-100 dark:divide-slate-700">
                       {filteredUsers.map((user) => (
-                        <tr key={user.id} className="border-b border-dashed border-orange-100 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-700/50">
+                        <tr key={user.id} className="border-b  border-orange-100 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-700/50">
                           <td className="py-3 px-2 sm:px-4">
                             <div className="flex items-center gap-2 sm:gap-3">
                               <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
@@ -534,13 +612,13 @@ export default function AdminDashboard() {
                             </div>
                           </td>
                           <td className="py-3 px-2 sm:px-4 hidden sm:table-cell">
-                            <span className={`px-2 py-1 rounded-lg text-xs font-medium capitalize ${user.role === 'admin'
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium capitalize ${user.role === 'ADMIN'
                                 ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                                : user.role === 'parent'
+                                : user.role === 'PARENT'
                                   ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
                                   : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
                               }`}>
-                              {user.role}
+                              {user.role.toLowerCase()}
                             </span>
                           </td>
                           <td className="py-3 px-2 sm:px-4 hidden md:table-cell">
@@ -581,11 +659,11 @@ export default function AdminDashboard() {
                           <td className="py-3 px-2 sm:px-4">
                             <div className="flex gap-2">
                               <Link
-                                to={`/profile/${user.id}`}
+                                to={`/activity/${user.id}`}
                                 className="p-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                                title="View Profile"
+                                title="View History"
                               >
-                                <Edit className="w-4 h-4" />
+                                <History className="w-4 h-4" />
                               </Link>
                               <button
                                 onClick={() => handleDeleteUser(user.id)}
@@ -615,7 +693,7 @@ export default function AdminDashboard() {
                 <div className="overflow-hidden">
                   <table className="min-w-full divide-y divide-orange-200 dark:divide-slate-600">
                     <thead>
-                      <tr className="border-b-2 border-dashed border-orange-200 dark:border-slate-600">
+                      <tr className="border-b-2  border-orange-200 dark:border-slate-600">
                         <th className="text-left py-3 px-2 sm:px-4">
                           <button
                             onClick={() => handleEventSort('title')}
@@ -676,7 +754,7 @@ export default function AdminDashboard() {
                     </thead>
                     <tbody className="divide-y divide-orange-100 dark:divide-slate-700">
                       {filteredEvents.map((event) => (
-                        <tr key={event.id} className="border-b border-dashed border-orange-100 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-700/50">
+                        <tr key={event.id} className="border-b  border-orange-100 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-700/50">
                           <td className="py-3 px-2 sm:px-4">
                             <div className="flex items-center gap-2 sm:gap-3">
                               <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0">
@@ -701,13 +779,13 @@ export default function AdminDashboard() {
                             </span>
                           </td>
                           <td className="py-3 px-2 sm:px-4 hidden md:table-cell">
-                            <span className={`px-2 py-1 rounded-lg text-xs font-medium capitalize ${event.status === 'published'
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium capitalize ${event.status === 'PUBLISHED'
                                 ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                                : event.status === 'draft'
+                                : event.status === 'DRAFT'
                                   ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
                                   : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
                               }`}>
-                              {event.status}
+                              {event.status.toLowerCase()}
                             </span>
                           </td>
                           <td className="py-3 px-2 sm:px-4">
@@ -717,7 +795,7 @@ export default function AdminDashboard() {
                           </td>
                           <td className="py-3 px-2 sm:px-4 hidden lg:table-cell">
                             <span className="text-sm text-slate-600 dark:text-slate-300">
-                              {format(new Date(event.createdAt), 'MMM d, yyyy')}
+                              {formatLocalDate(event.createdAt, 'MMM d, yyyy')}
                             </span>
                           </td>
                           <td className="py-3 px-2 sm:px-4">

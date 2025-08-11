@@ -3,23 +3,34 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, ArrowLeft, UserPlus, UserMinus, CheckCircle, XCircle, User, Shield, UserCheck, Search, Edit, Save } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
-import { mockEvents, mockSignups, mockUsers } from '../data/mockData';
+import { useWebSocket } from '../context/WebSocketContext';
+import { eventsAPI, signupsAPI, usersAPI } from '../services/api';
 import { format } from 'date-fns';
 import { ConfirmationModal, ParticipantManagementModal } from "../components/SessionDetailComponents";
+import LoadingSpinner from '../components/LoadingSpinner';
+import EventInstanceDisplay from '../components/EventInstanceDisplay';
+import ConflictDisplay from '../components/ConflictDisplay';
 
 export default function SessionDetail() {
     const { sessionId } = useParams();
     const { user } = useAuth();
     const { addNotification } = useNotification();
+    const { socket, joinSession, leaveSession, isConnected } = useWebSocket();
     const navigate = useNavigate();
 
+    const [sessionData, setSessionData] = useState<any>(null);
+    const [sessionSignups, setSessionSignups] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [cancelReason, setCancelReason] = useState('');
     const [showManageModal, setShowManageModal] = useState(false);
     const [studentSearch, setStudentSearch] = useState('');
     const [parentSearch, setParentSearch] = useState('');
+    const [waitlistPosition, setWaitlistPosition] = useState<any>(null);
+    const [dataVersion, setDataVersion] = useState(0); // Force re-renders when data changes
     const [modalState, setModalState] = useState<{
         isOpen: boolean;
-        type: 'signup' | 'waitlist' | 'cancel' | 'drop';
+        type: 'signup' | 'waitlist' | 'cancel' | 'drop' | 'accept-waitlist' | 'decline-waitlist';
         title: string;
         children: any;
         confirmText: string;
@@ -32,21 +43,130 @@ export default function SessionDetail() {
         confirmText: '',
         confirmColor: ''
     });
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [isLoadingConflicts, setIsLoadingConflicts] = useState(false);
+    const [conflictData, setConflictData] = useState<{
+        hasConflicts: boolean;
+        conflicts: any[];
+        targetEvent: any;
+    } | null>(null);
 
-    // Find the session and related data
-    const sessionData = mockEvents
-        .flatMap(event =>
-            event.instances.map(instance => ({
-                ...instance,
-                eventTitle: event.title,
-                eventDescription: event.description,
-                category: event.category,
-                tags: event.tags,
-                eventId: event.id,
-                createdBy: event.createdBy
-            }))
-        )
-        .find(session => session.id === sessionId);
+    // Load session data
+    const loadSessionData = async () => {
+        if (!sessionId) return null;
+
+        try {
+            console.log("Loading session data");
+            const [sessionResponse, usersData] = await Promise.all([
+                eventsAPI.getInstanceById(sessionId),
+                usersAPI.getAll()
+            ]);
+
+            const session = sessionResponse.instance;
+            const allUsers = usersData.users || [];
+
+            if (session) {
+                // Transform the session data to match the expected format
+                const transformedSession = {
+                    ...session,
+                    eventTitle: session.event.title,
+                    eventDescription: session.event.description,
+                    category: session.event.category,
+                    tags: session.event.tags,
+                    eventId: session.event.id,
+                    createdBy: session.event.createdBy
+                };
+
+                setSessionData(transformedSession);
+                setSessionSignups(session.signups || []);
+                setUsers(allUsers);
+                setDataVersion(prev => prev + 1); // Force re-render
+
+                return { session: transformedSession, signups: session.signups || [], users: allUsers };
+            }
+        } catch (error) {
+            console.error('Failed to load session data:', error);
+        } finally {
+            setLoading(false);
+        }
+
+        return null;
+    };
+
+    // Load waitlist position
+    const loadWaitlistPosition = async () => {
+        if (!sessionId || !user?.id) return;
+
+        try {
+            const position = await signupsAPI.getWaitlistPosition(sessionId);
+            setWaitlistPosition(position);
+            setDataVersion(prev => prev + 1); // Force re-render
+        } catch (error) {
+            console.error('Failed to load waitlist position:', error);
+            setWaitlistPosition(null);
+        }
+    };
+
+    useEffect(() => {
+        loadSessionData().then((result) => {
+            if (result) {
+                // After session data is loaded, also reload waitlist position if needed
+                const userSignup = result.signups.find((signup: any) => signup.userId === user?.id);
+                if (userSignup && (userSignup.status === 'WAITLIST' || userSignup.status === 'WAITLIST_PENDING')) {
+                    loadWaitlistPosition();
+                }
+            }
+        });
+    }, [sessionId]);
+
+    // Load waitlist position when user is on waitlist or pending
+    useEffect(() => {
+        const userSignup = sessionSignups.find(s => s.userId === user?.id);
+        if (userSignup && (userSignup.status === 'WAITLIST' || userSignup.status === 'WAITLIST_PENDING')) {
+            loadWaitlistPosition();
+        }
+    }, [sessionSignups, user?.id, sessionId]);
+
+    // Subscribe to real-time updates via WebSocket
+    useEffect(() => {
+        if (!sessionId || !socket) return;
+
+        // Join the session room
+        joinSession(sessionId);
+
+        // Listen for signup updates
+        const handleSignupUpdate = (data: any) => {
+            console.log('📡 Received signup update:', data);
+
+            // Reload session data to get the latest state
+            loadSessionData().then((result) => {
+                if (result) {
+                    // After session data is loaded, also reload waitlist position if needed
+                    const userSignup = result.signups.find((signup: any) => signup.userId === user?.id);
+                    if (userSignup && (userSignup.status === 'WAITLIST' || userSignup.status === 'WAITLIST_PENDING')) {
+                        loadWaitlistPosition();
+                    }
+                }
+            });
+        };
+
+        socket.on('signup-updated', handleSignupUpdate);
+
+        return () => {
+            socket.off('signup-updated', handleSignupUpdate);
+            leaveSession(sessionId);
+        };
+    }, [sessionId, socket, joinSession, leaveSession]);
+
+
+
+    if (loading) {
+        return (
+            <div className="text-center flex w-full h-screen items-center justify-center">
+                <LoadingSpinner size="lg" />
+            </div>
+        );
+    }
 
     if (!sessionData) {
         return (
@@ -59,36 +179,80 @@ export default function SessionDetail() {
         );
     }
 
-    const creator = mockUsers.find(u => u.id === sessionData.createdBy);
-    const userSignup = mockSignups.find(signup =>
-        signup.userId === user?.id &&
-        signup.instanceId === sessionData.id
+    const creator = users.find(u => u.id === sessionData.createdBy);
+    const userSignup = sessionSignups.find(signup =>
+        signup.userId === user?.id
     );
 
-    // Get all signups for this session
-    const sessionSignups = mockSignups.filter(signup => signup.instanceId === sessionData.id);
+    const confirmedStudentSignups = sessionSignups.filter(s => s.status === 'CONFIRMED' && users.find(u => u.id === s.userId)?.role === 'STUDENT');
+    const confirmedParentSignups = sessionSignups.filter(s => s.status === 'CONFIRMED' && users.find(u => u.id === s.userId)?.role === 'PARENT');
+    const waitlistStudentSignups = sessionSignups.filter(s => (s.status === 'WAITLIST' || s.status === 'WAITLIST_PENDING') && users.find(u => u.id === s.userId)?.role === 'STUDENT');
+    const waitlistParentSignups = sessionSignups.filter(s => (s.status === 'WAITLIST' || s.status === 'WAITLIST_PENDING') && users.find(u => u.id === s.userId)?.role === 'PARENT');
 
-    const confirmedStudentSignups = sessionSignups.filter(s => s.status === 'confirmed' && mockUsers.find(u => u.id === s.userId)?.role === 'student');
-    const confirmedParentSignups = sessionSignups.filter(s => s.status === 'confirmed' && mockUsers.find(u => u.id === s.userId)?.role === 'parent');
-    const waitlistStudentSignups = sessionSignups.filter(s => s.status === 'waitlist' && mockUsers.find(u => u.id === s.userId)?.role === 'student');
-    const waitlistParentSignups = sessionSignups.filter(s => s.status === 'waitlist' && mockUsers.find(u => u.id === s.userId)?.role === 'parent');
-
-    const isPast = new Date(sessionData.startDate) < new Date();
+    const hasStartDate = sessionData.startDate && sessionData.startDate !== '';
+    const isPast = hasStartDate ? new Date(sessionData.startDate) < new Date() : false;
     const userRole = user?.role;
-    const isSignedUp = !!userSignup && userSignup.status === 'confirmed';
-    const isOnWaitlist = !!userSignup && userSignup.status === 'waitlist';
-    const isCancelled = !!userSignup && userSignup.status === 'cancelled';
+    const isSignedUp = !!userSignup && userSignup.status === 'CONFIRMED';
+    const isOnWaitlist = !!userSignup && userSignup.status === 'WAITLIST';
+    const isPendingWaitlist = !!userSignup && userSignup.status === 'WAITLIST_PENDING';
+    const isCancelled = !!userSignup && userSignup.status === 'CANCELLED';
+
+    // Debug logging
+    console.log('🔍 User state:', {
+        userId: user?.id,
+        userRole,
+        userSignup: userSignup ? { id: userSignup.id, status: userSignup.status } : null,
+        isSignedUp,
+        isOnWaitlist,
+        isCancelled,
+        confirmedCount: confirmedStudentSignups.length + confirmedParentSignups.length,
+        waitlistCount: waitlistStudentSignups.length + waitlistParentSignups.length
+    });
 
     const hasOpenSpots = () => {
-        if (userRole === 'student') {
-            return confirmedStudentSignups.length < sessionData.studentCapacity;
-        } else if (userRole === 'parent') {
-            return confirmedParentSignups.length < sessionData.parentCapacity;
+        if (!sessionData.enabled || sessionData.enabled === false) return false;
+        if (userRole === 'STUDENT') {
+            // Count confirmed + waitlist_pending (reserved spots)
+            const reservedSpots = sessionSignups.filter(s =>
+                (s.status === 'CONFIRMED' || s.status === 'WAITLIST_PENDING') &&
+                users.find(u => u.id === s.userId)?.role === 'STUDENT'
+            ).length;
+            return reservedSpots < sessionData.studentCapacity;
+        } else if (userRole === 'PARENT') {
+            // Count confirmed + waitlist_pending (reserved spots)
+            const reservedSpots = sessionSignups.filter(s =>
+                (s.status === 'CONFIRMED' || s.status === 'WAITLIST_PENDING') &&
+                users.find(u => u.id === s.userId)?.role === 'PARENT'
+            ).length;
+            return reservedSpots < sessionData.parentCapacity;
         }
         return false;
     };
 
-    const openModal = (type: typeof modalState.type) => {
+
+
+    const openModal = async (type: typeof modalState.type) => {
+        if (isProcessing || isLoadingConflicts) return; // Prevent opening modal while processing or loading conflicts
+        
+        let conflictResponse = null;
+        
+        // Check for conflicts before opening signup or waitlist modals
+        if ((type === 'signup' || type === 'waitlist') && sessionId) {
+            try {
+                setIsLoadingConflicts(true);
+                const response = await signupsAPI.checkConflicts(sessionId);
+                setConflictData(response);
+                conflictResponse = response; // Store for immediate use
+            } catch (error) {
+                console.error('Failed to check conflicts:', error);
+                const errorResponse = { hasConflicts: false, conflicts: [], targetEvent: null };
+                setConflictData(errorResponse);
+                conflictResponse = errorResponse;
+            } finally {
+                setIsLoadingConflicts(false);
+            }
+        }
+
         let title = '';
         let children: any = '';
         let confirmText = '';
@@ -98,15 +262,40 @@ export default function SessionDetail() {
             case 'signup':
                 title = 'Confirm Signup';
                 children = (
-                    <div className="space-y-2 text-sm font-medium">
-                        <div>
-                            By signing up for this event, you agree to:
-                        </div>
-                        <ol className="space-y-2 ml-4 list-disc">
-                            <li>Arrive at the event on time wearing your Sewa t-shirt/hoodie.</li>
-                            <li>Receive volunteer hours after admin verification of attendance.</li>
-                            <li>Coordinate cancellations with any parent volunteers or admins for this event.</li>
-                        </ol>
+                    <div>
+                        {conflictResponse && conflictResponse.hasConflicts ? (
+                            <div className="flex flex-col xl:flex-row gap-4">
+                                <div>
+                                    <ConflictDisplay 
+                                        conflicts={conflictResponse.conflicts} 
+                                        targetEvent={conflictResponse.targetEvent} 
+                                    />
+                                </div>
+                                <div>
+                                    <div className="space-y-2 text-sm font-medium">
+                                        <div>
+                                            By signing up for this event, you agree to:
+                                        </div>
+                                        <ol className="space-y-2 ml-4 list-disc">
+                                            <li>Arrive at the event on time wearing your Sewa t-shirt/hoodie.</li>
+                                            <li>Receive volunteer hours after admin verification of attendance.</li>
+                                            <li>Coordinate cancellations with any parent volunteers or admins for this event.</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 text-sm font-medium">
+                                <div>
+                                    By signing up for this event, you agree to:
+                                </div>
+                                <ol className="space-y-2 ml-4 list-disc">
+                                    <li>Arrive at the event on time wearing your Sewa t-shirt/hoodie.</li>
+                                    <li>Receive volunteer hours after admin verification of attendance.</li>
+                                    <li>Coordinate cancellations with any parent volunteers or admins for this event.</li>
+                                </ol>
+                            </div>
+                        )}
                     </div>
                 );
                 confirmText = 'Sign Up';
@@ -114,7 +303,29 @@ export default function SessionDetail() {
                 break;
             case 'waitlist':
                 title = 'Join Waitlist';
-                children = `Looks like this session is full. Would you like to join the waitlist? If spots open up, you will automatically be registered for the session.`;
+                children = (
+                    <div>
+                        {conflictResponse && conflictResponse.hasConflicts ? (
+                            <div className="flex flex-col xl:flex-row gap-4">
+                                <div>
+                                    <ConflictDisplay 
+                                        conflicts={conflictResponse.conflicts} 
+                                        targetEvent={conflictResponse.targetEvent} 
+                                    />
+                                </div>
+                                <div>
+                                    <div>
+                                        Looks like this session is full. Would you like to join the waitlist? If spots open up, you will be notified.
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                Looks like this session is full. Would you like to join the waitlist? If spots open up, you will be notified.
+                            </div>
+                        )}
+                    </div>
+                );
                 confirmText = 'Join Waitlist';
                 confirmColor = 'bg-yellow-500 hover:bg-yellow-600 border-yellow-400';
                 break;
@@ -152,6 +363,18 @@ export default function SessionDetail() {
                 confirmText = 'Drop from Waitlist';
                 confirmColor = 'bg-red-500 hover:bg-red-600 border-red-400';
                 break;
+            case 'accept-waitlist':
+                title = 'Accept Waitlist Spot';
+                children = `A spot has opened up for this session! Would you like to accept it and be confirmed for the event?`;
+                confirmText = 'Accept Spot';
+                confirmColor = 'bg-green-500 hover:bg-green-600 border-green-400';
+                break;
+            case 'decline-waitlist':
+                title = 'Decline Waitlist Spot';
+                children = `Are you sure you want to decline this waitlist spot? It may be offered to the next person on the waitlist.`;
+                confirmText = 'Decline Spot';
+                confirmColor = 'bg-red-500 hover:bg-red-600 border-red-400';
+                break;
         }
 
         setModalState({
@@ -164,53 +387,115 @@ export default function SessionDetail() {
         });
     };
 
-    const handleConfirm = () => {
-        // Mock action based on type
-        switch (modalState.type) {
-            case 'signup':
+    const handleConfirm = async () => {
+        if (isProcessing) return; // Prevent multiple submissions
+
+        try {
+            setIsProcessing(true);
+            switch (modalState.type) {
+                case 'signup':
+                    const signupResponse = await signupsAPI.create({
+                        eventId: sessionData.eventId,
+                        instanceId: sessionId!
+                    });
+
+                    // Check if the user was waitlisted instead of confirmed
+                    if (signupResponse.status === 'WAITLIST') {
+                        addNotification(
+                            'warning',
+                            'Added to waitlist',
+                            signupResponse.message || `The session filled up before your request was processed. You have been added to the waitlist for ${sessionData.eventTitle}.`
+                        );
+                    } else {
+                        addNotification(
+                            'success',
+                            'Successfully signed up!',
+                            signupResponse.message || `You have been confirmed for ${sessionData.eventTitle}`
+                        );
+                    }
+                    // Real-time update will be handled by WebSocket
+                    break;
+                case 'waitlist':
+                    const waitlistResponse = await signupsAPI.create({
+                        eventId: sessionData.eventId,
+                        instanceId: sessionId!
+                    });
+                    addNotification(
+                        'warning',
+                        'Added to waitlist!',
+                        waitlistResponse.message || `You have been added to the waitlist for ${sessionData.eventTitle}. You will be automatically registered if a spot opens up.`
+                    );
+                    // Real-time update will be handled by WebSocket
+                    break;
+                case 'cancel':
+                case 'drop':
+                    // Find the user's signup for this session
+                    const userSignup = sessionSignups.find(signup => signup.userId === user?.id);
+                    if (userSignup) {
+                        await signupsAPI.update(userSignup.id, { status: 'CANCELLED' });
+                        addNotification(
+                            'success',
+                            modalState.type === 'cancel' ? 'Signup cancelled' : 'Removed from waitlist',
+                            modalState.type === 'cancel'
+                                ? `Your signup for ${sessionData.eventTitle} was cancelled.`
+                                : `You have been removed from the waitlist for ${sessionData.eventTitle}`
+                        );
+                        // Real-time update will be handled by WebSocket
+                    }
+                    break;
+                case 'accept-waitlist':
+                    await signupsAPI.acceptWaitlist(sessionId!);
+                    // Notification will be sent by the backend via WebSocket
+                    // Reload data to update the UI
+                    await loadSessionData();
+                    await loadWaitlistPosition();
+                    break;
+                case 'decline-waitlist':
+                    await signupsAPI.declineWaitlist(sessionId!);
+                    // Notification will be sent by the backend via WebSocket
+                    // Reload data to update the UI
+                    await loadSessionData();
+                    break;
+            }
+        } catch (error: any) {
+            console.error('Failed to perform action:', error);
+            
+            // Handle specific error for disabled waitlist
+            const errorMessage = error.response?.data?.message || error.message || 'An error occurred while performing the action';
+            
+            if (errorMessage.includes('Session is full and waitlist is disabled')) {
                 addNotification(
-                    'success',
-                    'Successfully signed up!',
-                    `You have been confirmed for ${sessionData.eventTitle}`
+                    'error',
+                    'Session Full',
+                    'This session is full and waitlist is disabled. Please try another session.',
+                    false
                 );
-                break;
-            case 'waitlist':
+            } else {
                 addNotification(
-                    'success',
-                    'Added to waitlist',
-                    `You have been added to the waitlist for ${sessionData.eventTitle}`
+                    'error',
+                    'Action failed',
+                    errorMessage,
+                    false
                 );
-                break;
-            case 'cancel':
-                addNotification(
-                    'success',
-                    'Signup cancelled',
-                    `Your signup for ${sessionData.eventTitle} was cancelled.`
-                );
-                break;
-            case 'drop':
-                addNotification(
-                    'success',
-                    'Removed from waitlist',
-                    `You have been removed from the waitlist for ${sessionData.eventTitle}`
-                );
-                break;
+            }
+        } finally {
+            setIsProcessing(false);
+            setModalState({ ...modalState, isOpen: false });
         }
-        setModalState({ ...modalState, isOpen: false });
     };
 
-    const renderParticipantCard = (signup: any, isWaitlist: boolean = false) => {
-        const participant = mockUsers.find(u => u.id === signup.userId);
+    const renderParticipantCard = (signup: any, isWaitlist: boolean = false, waitlistPosition?: number) => {
+        const participant = users.find(u => u.id === signup.userId);
         if (!participant) return null;
 
-        const isStudent = participant.role === 'student';
+        const isStudent = participant.role === 'STUDENT';
         const attendanceStatus = signup.attendance;
 
         return (
             <Link
                 key={signup.id}
                 to={`/profile/${participant.id}`}
-                className={`block p-3 rounded-lg border-2 border-dashed transition-colors ${isWaitlist
+                className={`block p-3 rounded-lg border-2  transition-colors ${isWaitlist
                     ? 'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-500 opacity-60 hover:bg-slate-200 dark:hover:bg-slate-600'
                     : isStudent
                         ? 'bg-green-50 dark:bg-slate-700 border-green-200 dark:border-slate-500 hover:bg-green-100 dark:hover:bg-slate-600'
@@ -228,7 +513,12 @@ export default function SessionDetail() {
                                 <div className="font-medium text-slate-800 dark:text-white">{participant.name}</div>
                                 {isWaitlist && (
                                     <div className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-2 py-1 rounded text-xs font-medium">
-                                        Waitlist
+                                        {waitlistPosition ? `Waitlist #${waitlistPosition}` : 'Waitlist'}
+                                    </div>
+                                )}
+                                {signup.status === 'WAITLIST_PENDING' && (
+                                    <div className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-1 rounded text-xs font-medium">
+                                        Pending
                                     </div>
                                 )}
                             </div>
@@ -237,12 +527,12 @@ export default function SessionDetail() {
                         <div>
                             {attendanceStatus && (
                                 <div className="flex items-center gap-1">
-                                    {attendanceStatus === 'present' ? (
+                                    {attendanceStatus === 'PRESENT' ? (
                                         <>
                                             <CheckCircle className="w-4 h-4 text-green-600" />
                                             <span className="text-xs text-green-600 font-medium">Present</span>
                                         </>
-                                    ) : attendanceStatus === 'absent' ? (
+                                    ) : attendanceStatus === 'ABSENT' ? (
                                         <>
                                             <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
                                             <span className="text-xs text-red-600 font-medium dark:text-red-400">Absent</span>
@@ -265,14 +555,30 @@ export default function SessionDetail() {
 
     const renderActionButton = () => {
         // Hide signup buttons for admins
-        if (user?.role === 'admin') {
+        if (user?.role === 'ADMIN') {
             return null;
+        }
+
+        const isEnabled = sessionData.enabled !== false;
+
+        if (!isEnabled) {
+            return (
+                <div className="bg-gradient-to-r from-slate-400 to-slate-500 text-white px-8 py-4 rounded-2xl font-semibold text-center shadow-lg opacity-75">
+                    <div className="flex items-center justify-center gap-2">
+                        <XCircle className="w-5 h-5" />
+                        Session Closed
+                    </div>
+                </div>
+            );
         }
 
         if (isPast) {
             return (
-                <div className="bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-400 px-6 py-3 rounded-lg font-medium text-center">
-                    Past Session
+                <div className="bg-gradient-to-r from-slate-400 to-slate-500 text-white px-8 py-4 rounded-2xl font-semibold text-center shadow-lg opacity-75">
+                    <div className="flex items-center justify-center gap-2">
+                        <Clock className="w-5 h-5" />
+                        Past Session
+                    </div>
                 </div>
             );
         }
@@ -280,11 +586,19 @@ export default function SessionDetail() {
         if (isSignedUp) {
             return (
                 <button
-                    onClick={() => openModal('cancel')}
-                    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-medium border-2 border-dashed border-red-400 justify-center transition-all hover:scale-105 hover:rotate-1"
+                    onClick={async () => await openModal('cancel')}
+                    disabled={isProcessing}
+                    className={`group relative overflow-hidden bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                    <UserMinus className="w-4 h-4" />
-                    Cancel Signup
+                    <div className="flex items-center justify-center gap-3">
+                        {isProcessing ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <UserMinus className="w-5 h-5 transition-transform group-hover:scale-110" />
+                        )}
+                        <span>{isProcessing ? 'Processing...' : 'Cancel Signup'}</span>
+                    </div>
+                    <div className="absolute inset-0 bg-white/50 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 </button>
             );
         }
@@ -292,72 +606,195 @@ export default function SessionDetail() {
         if (isOnWaitlist) {
             return (
                 <button
-                    onClick={() => openModal('drop')}
-                    className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-medium border-2 border-dashed border-yellow-400 justify-center transition-all hover:scale-105 hover:rotate-1"
+                    onClick={async () => await openModal('drop')}
+                    disabled={isProcessing}
+                    className={`group relative overflow-hidden bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                    <UserMinus className="w-4 h-4" />
-                    Drop from Waitlist
+                    <div className="flex items-center justify-center gap-3">
+                        {isProcessing ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <UserMinus className="w-5 h-5 transition-transform group-hover:scale-110" />
+                        )}
+                        <span>{isProcessing ? 'Processing...' : 'Drop from Waitlist'}</span>
+                    </div>
+                    <div className="absolute inset-0 bg-white/50 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 </button>
+            );
+        }
+
+        if (isPendingWaitlist) {
+            return (
+                <div className="flex gap-3">
+                    <button
+                        onClick={async () => await openModal('accept-waitlist')}
+                        disabled={isProcessing}
+                        className={`group relative overflow-hidden bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        <div className="flex items-center justify-center gap-2">
+                            {isProcessing ? (
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                                <UserPlus className="w-5 h-5 transition-transform group-hover:scale-110" />
+                            )}
+                            <span>{isProcessing ? 'Processing...' : 'Accept Spot'}</span>
+                        </div>
+                        <div className="absolute inset-0 bg-white/50 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    </button>
+                    <button
+                        onClick={async () => await openModal('decline-waitlist')}
+                        disabled={isProcessing}
+                        className={`group relative overflow-hidden bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        <div className="flex items-center justify-center gap-2">
+                            {isProcessing ? (
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                                <UserMinus className="w-5 h-5 transition-transform group-hover:scale-110" />
+                            )}
+                            <span>{isProcessing ? 'Processing...' : 'Decline Spot'}</span>
+                        </div>
+                        <div className="absolute inset-0 bg-white/50 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    </button>
+                </div>
             );
         }
 
         if (isCancelled) {
             if (hasOpenSpots()) {
-                return (
-                    <button
-                        onClick={() => openModal('signup')}
-                        className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium border-2 border-dashed border-green-400 justify-center transition-all hover:scale-105 hover:rotate-1"
-                    >
-                        <UserPlus className="w-4 h-4" />
-                        Sign Up Again
-                    </button>
-                );
+                            return (
+                <button
+                    onClick={async () => await openModal('signup')}
+                    disabled={isProcessing || isLoadingConflicts}
+                    className={`group relative overflow-hidden bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl ${(isProcessing || isLoadingConflicts) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                    <div className="flex items-center justify-center gap-3">
+                        {(isProcessing || isLoadingConflicts) ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <UserPlus className="w-5 h-5 transition-transform group-hover:scale-110" />
+                        )}
+                        <span>{(isProcessing || isLoadingConflicts) ? 'Working...' : 'Sign Up'}</span>
+                    </div>
+                    <div className="absolute inset-0 bg-white/50 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                </button>
+            );
             } else {
-                return (
+                // Check if waitlist is enabled
+                if (sessionData.waitlistEnabled !== false) {
+                                                return (
                     <button
-                        onClick={() => openModal('waitlist')}
-                        className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-medium border-2 border-dashed border-yellow-400 justify-center transition-all hover:scale-105 hover:rotate-1"
+                        onClick={async () => await openModal('waitlist')}
+                        disabled={isProcessing || isLoadingConflicts}
+                        className={`group relative overflow-hidden bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl ${(isProcessing || isLoadingConflicts) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        <UserPlus className="w-4 h-4" />
-                        Join Waitlist
-                    </button>
-                );
+                    <div className="flex items-center justify-center gap-3">
+                        {(isProcessing || isLoadingConflicts) ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <UserPlus className="w-5 h-5 transition-transform group-hover:scale-110" />
+                        )}
+                        <span>{(isProcessing || isLoadingConflicts) ? 'Working...' : 'Join Waitlist'}</span>
+                    </div>
+                    <div className="absolute inset-0 bg-white/50 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                </button>
+            );
+                } else {
+                    return (
+                        <div className="bg-gradient-to-r from-slate-400 to-slate-500 text-white px-8 py-4 rounded-2xl font-semibold text-center shadow-lg opacity-75">
+                            <div className="flex items-center justify-center gap-2">
+                                <XCircle className="w-5 h-5" />
+                                Session Full
+                            </div>
+                        </div>
+                    );
+                }
             }
         }
 
         if (hasOpenSpots()) {
             return (
                 <button
-                    onClick={() => openModal('signup')}
-                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium border-2 border-dashed border-green-400 justify-center transition-all hover:scale-105 hover:rotate-1"
+                    onClick={async () => await openModal('signup')}
+                    disabled={isProcessing || isLoadingConflicts}
+                    className={`group relative overflow-hidden bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl ${(isProcessing || isLoadingConflicts) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                    <UserPlus className="w-4 h-4" />
-                    Sign Up
+                    <div className="flex items-center justify-center gap-3">
+                        {(isProcessing || isLoadingConflicts) ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <UserPlus className="w-5 h-5 transition-transform group-hover:scale-110" />
+                        )}
+                        <span>{(isProcessing || isLoadingConflicts) ? 'Working...' : 'Sign Up'}</span>
+                    </div>
+                    <div className="absolute inset-0 bg-white/50 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 </button>
             );
         } else {
-            return (
-                <button
-                    onClick={() => openModal('waitlist')}
-                    className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-medium border-2 border-dashed border-yellow-400 justify-center transition-all hover:scale-105 hover:rotate-1"
-                >
-                    <UserPlus className="w-4 h-4" />
-                    Join Waitlist
-                </button>
-            );
+            // Check if waitlist is enabled
+            if (sessionData.waitlistEnabled !== false) {
+                return (
+                    <button
+                        onClick={async () => await openModal('waitlist')}
+                        disabled={isProcessing || isLoadingConflicts}
+                        className={`group relative overflow-hidden bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl ${(isProcessing || isLoadingConflicts) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        <div className="flex items-center justify-center gap-3">
+                            {(isProcessing || isLoadingConflicts) ? (
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                                <UserPlus className="w-5 h-5 transition-transform group-hover:scale-110" />
+                            )}
+                            <span>{(isProcessing || isLoadingConflicts) ? 'Working...' : 'Join Waitlist'}</span>
+                        </div>
+                        <div className="absolute inset-0 bg-white/50 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    </button>
+                );
+            } else {
+                return (
+                    <div className="bg-gradient-to-r from-slate-400 to-slate-500 text-white px-8 py-4 rounded-2xl font-semibold text-center shadow-lg opacity-75">
+                        <div className="flex items-center justify-center gap-2">
+                            <XCircle className="w-5 h-5" />
+                            Session Full
+                        </div>
+                    </div>
+                );
+            }
         }
     };
 
-    const filteredStudents = [...confirmedStudentSignups].filter(signup => {
-        const participant = mockUsers.find(u => u.id === signup.userId);
+    // Combine confirmed and waitlisted students, sorted by status then signup date
+    const allStudentSignups = [...confirmedStudentSignups, ...waitlistStudentSignups]
+        .sort((a, b) => {
+            // Confirmed first, then waitlisted, then by signup date
+            if (a.status !== b.status) {
+                const statusOrder: Record<string, number> = { 'CONFIRMED': 0, 'WAITLIST_PENDING': 1, 'WAITLIST': 2 };
+                return (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+            }
+            return new Date(a.signupDate).getTime() - new Date(b.signupDate).getTime();
+        });
+
+    const filteredStudents = allStudentSignups.filter(signup => {
+        const participant = users.find(u => u.id === signup.userId);
         return participant && (
             participant.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
             participant.email.toLowerCase().includes(studentSearch.toLowerCase())
         );
     });
 
-    const filteredParents = [...confirmedParentSignups].filter(signup => {
-        const participant = mockUsers.find(u => u.id === signup.userId);
+    // Combine confirmed and waitlisted parents, sorted by status then signup date
+    const allParentSignups = [...confirmedParentSignups, ...waitlistParentSignups]
+        .sort((a, b) => {
+            // Confirmed first, then waitlisted, then by signup date
+            if (a.status !== b.status) {
+                const statusOrder: Record<string, number> = { 'CONFIRMED': 0, 'WAITLIST_PENDING': 1, 'WAITLIST': 2 };
+                return (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+            }
+            return new Date(a.signupDate).getTime() - new Date(b.signupDate).getTime();
+        });
+
+    const filteredParents = allParentSignups.filter(signup => {
+        const participant = users.find(u => u.id === signup.userId);
         return participant && (
             participant.name.toLowerCase().includes(parentSearch.toLowerCase()) ||
             participant.email.toLowerCase().includes(parentSearch.toLowerCase())
@@ -366,28 +803,46 @@ export default function SessionDetail() {
 
     return (
         <>
-            <div className="space-y-6 p-4 lg:p-8">
-                <Link
-                    to={`/events/${sessionData.eventId}`}
-                    className="inline-flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition-colors"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back to Event
-                </Link>
+            <div className="space-y-6 px-4 py-8 lg:px-8">
+                <div className="flex items-center justify-between">
+                    <Link
+                        to={`/events/${sessionData.eventId}`}
+                        className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to Event
+                    </Link>
+                    <div className="flex items-center justify-end">
+                        <div className={`flex items-center gap-2 rounded-full text-xs font-medium px-2 py-1 ${isConnected
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                            : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                            }`}>
+                            <div className="relative">
+                                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                {isConnected && <div className={`absolute top-0 left-0 w-2 h-2 rounded-full animate-ping bg-green-500`}></div>}
+                            </div>
+                            {isConnected ? 'Live' : 'Disconnected'}
+                        </div>
+                    </div>
+                </div>
 
                 {/* Session Header */}
-                <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-lg shadow-lg border-2 border-dashed border-orange-200 dark:border-slate-600">
+                <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50">
+
                     <div className="flex items-start justify-between mb-6 flex-col md:flex-row gap-4 md:flex-1">
                         <div className="flex-1">
-                            <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 font-caveat">
+                            <h1 className="text-xl font-semibold text-slate-800 dark:text-white mb-2">
                                 {sessionData.eventTitle}
                             </h1>
                             <div className="flex flex-wrap items-center gap-3">
-                                <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-lg font-medium">
+                                {
+                                    !sessionData.enabled && <span className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-3 py-1 rounded-full font-medium text-sm">Closed</span>
+                                }
+                                <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 px-3 py-1 rounded-full font-medium text-sm">
                                     {sessionData.category}
                                 </span>
-                                {sessionData.tags.map(tag => (
-                                    <span key={tag} className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded text-sm">
+                                {sessionData.tags.map((tag: any) => (
+                                    <span key={tag} className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded-full text-xs">
                                         {tag}
                                     </span>
                                 ))}
@@ -395,21 +850,22 @@ export default function SessionDetail() {
                         </div>
                         <div className="flex flex-wrap md:flex-col justify-center md:justify-end gap-3 w-full md:w-auto">
                             {renderActionButton()}
-                            {user?.role === 'admin' && (
+                            {user?.role === 'ADMIN' && (
                                 <Link
                                     to={`/edit-session/${sessionData.id}`}
-                                    className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors border-2 border-dashed border-blue-400 justify-center"
+                                    className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:shadow-md text-white px-3 py-2 rounded-lg font-medium transition-all hover:scale-105 justify-center text-sm"
                                 >
                                     <Edit className="w-4 h-4" />
                                     Edit Session
                                 </Link>
                             )}
                             {/* Manage Participants Button */}
-                            {(user?.role === 'parent' || user?.role === 'admin') && (
+                            {(user?.role === 'ADMIN' || (user?.role === 'PARENT' && isSignedUp)) && (
                                 <div className="flex justify-center">
                                     <button
                                         onClick={() => setShowManageModal(true)}
-                                        className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-medium transition-colors border-2 border-dashed border-purple-400"
+                                        disabled={isProcessing}
+                                        className={`flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-md text-white px-3 py-2 rounded-lg font-medium transition-all hover:scale-105 text-sm ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
                                         <Users className="w-5 h-5" />
                                         Manage Participants
@@ -420,24 +876,8 @@ export default function SessionDetail() {
                     </div>
 
                     {/* Session Details */}
-                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 gap-x-16 p-4 bg-orange-50 dark:bg-slate-700 rounded-lg border-2 border-dashed border-orange-200 dark:border-slate-500">
-                        <div className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
-                            <Calendar className="w-5 h-5 mt-1" />
-                            <div>
-                                <p className="font-medium">{format(new Date(sessionData.startDate), 'EEEE, MMM d')}</p>
-                                <p className="text-sm">{format(new Date(sessionData.startDate), 'yyyy')}</p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
-                            <Clock className="w-5 h-5 mt-1" />
-                            <div>
-                                <p className="font-medium">
-                                    {format(new Date(sessionData.startDate), 'h:mm a')} – {format(new Date(sessionData.endDate), 'h:mm a')}
-                                </p>
-                                <p className="text-sm">3 volunteer hours</p>
-                            </div>
-                        </div>
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 gap-x-16 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
+                        <EventInstanceDisplay instance={sessionData} />
 
                         <div className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
                             <Users className="w-5 h-5 mt-1" />
@@ -445,28 +885,30 @@ export default function SessionDetail() {
                                 <p className="font-medium">
                                     {confirmedStudentSignups.length + confirmedParentSignups.length} / {sessionData.studentCapacity + sessionData.parentCapacity} signed up
                                 </p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                            <MapPin className="w-5 h-5 mt-1" />
-                            <div>
-                               {sessionData.location}
+                                {(isOnWaitlist || isPendingWaitlist) && waitlistPosition && (
+                                    <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
+                                        {isPendingWaitlist ? (
+                                            <span className="font-semibold">⏰ Waitlist spot available! Respond within 12 hours.</span>
+                                        ) : (
+                                            <>Position {waitlistPosition.position} of {waitlistPosition.totalWaitlisted} on waitlist ({waitlistPosition.role.toLowerCase()}s)</>
+                                        )}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>
 
                     {sessionData.description && (
-                        <div className="mt-4 p-4 bg-blue-50 dark:bg-slate-700 rounded-lg border-2 border-dashed border-blue-200 dark:border-slate-500">
+                        <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
                             <h3 className="font-semibold text-slate-800 dark:text-white mb-2">Session Notes:</h3>
                             <p className="text-slate-600 dark:text-slate-300">{sessionData.description}</p>
                         </div>
                     )}
 
                     {creator && (
-                        <div className="mt-4 p-4 bg-purple-50 dark:bg-slate-700 rounded-lg border-2 border-dashed border-purple-200 dark:border-slate-500">
+                        <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
                             <div className="flex items-center gap-3">
-                                <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                <Shield className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                                 <div>
                                     <p className="font-semibold text-slate-800 dark:text-white">Created by: {creator.name}</p>
                                     <p className="text-sm text-slate-600 dark:text-slate-300">{creator.email}</p>
@@ -479,9 +921,9 @@ export default function SessionDetail() {
                 {/* Participants */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Students */}
-                    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-lg shadow-lg border-2 border-dashed border-orange-200 dark:border-slate-600">
+                    <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-white font-caveat">
+                            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
                                 Students ({confirmedStudentSignups.length}/{sessionData.studentCapacity})
                             </h2>
                         </div>
@@ -494,15 +936,19 @@ export default function SessionDetail() {
                                     placeholder="Search students..."
                                     value={studentSearch}
                                     onChange={(e) => setStudentSearch(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm"
+                                    className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-3 max-h-72 overflow-y-auto">
-                            {filteredStudents.map(signup =>
-                                renderParticipantCard(signup, signup.status === 'waitlist')
-                            )}
+                            {filteredStudents.map((signup, index) => {
+                                const isWaitlist = signup.status === 'WAITLIST' || signup.status === 'WAITLIST_PENDING';
+                                const waitlistPosition = isWaitlist ?
+                                    allStudentSignups.filter(s => (s.status === 'WAITLIST' || s.status === 'WAITLIST_PENDING')).findIndex(s => s.id === signup.id) + 1
+                                    : undefined;
+                                return renderParticipantCard(signup, isWaitlist, waitlistPosition);
+                            })}
                             {filteredStudents.length === 0 && (
                                 <p className="text-slate-500 dark:text-slate-400 text-center py-4">
                                     {studentSearch ? 'No students match your search' : 'No students signed up'}
@@ -512,9 +958,9 @@ export default function SessionDetail() {
                     </div>
 
                     {/* Parents */}
-                    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-lg shadow-lg border-2 border-dashed border-orange-200 dark:border-slate-600">
+                    <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-white font-caveat">
+                            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
                                 Parents ({confirmedParentSignups.length}/{sessionData.parentCapacity})
                             </h2>
                         </div>
@@ -527,15 +973,19 @@ export default function SessionDetail() {
                                     placeholder="Search parents..."
                                     value={parentSearch}
                                     onChange={(e) => setParentSearch(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm"
+                                    className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-3 max-h-72 overflow-y-auto">
-                            {filteredParents.map(signup =>
-                                renderParticipantCard(signup, signup.status === 'waitlist')
-                            )}
+                            {filteredParents.map((signup, index) => {
+                                const isWaitlist = signup.status === 'WAITLIST' || signup.status === 'WAITLIST_PENDING';
+                                const waitlistPosition = isWaitlist ?
+                                    allParentSignups.filter(s => (s.status === 'WAITLIST' || s.status === 'WAITLIST_PENDING')).findIndex(s => s.id === signup.id) + 1
+                                    : undefined;
+                                return renderParticipantCard(signup, isWaitlist, waitlistPosition);
+                            })}
                             {filteredParents.length === 0 && (
                                 <p className="text-slate-500 dark:text-slate-400 text-center py-4">
                                     {parentSearch ? 'No parents match your search' : 'No parents signed up'}
@@ -544,7 +994,7 @@ export default function SessionDetail() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div >
 
             <ConfirmationModal
                 isOpen={modalState.isOpen}
@@ -554,6 +1004,7 @@ export default function SessionDetail() {
                 children={modalState.children}
                 confirmText={modalState.confirmText}
                 confirmColor={modalState.confirmColor}
+                isLoading={isProcessing}
             />
 
             <ParticipantManagementModal
@@ -562,6 +1013,8 @@ export default function SessionDetail() {
                 sessionData={sessionData}
                 sessionSignups={sessionSignups}
                 defaultHours={3}
+                onDataUpdate={loadSessionData}
+                userRole={user?.role}
             />
         </>
     );

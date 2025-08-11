@@ -2,12 +2,11 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'student' | 'parent' | 'admin';
+  role: 'STUDENT' | 'PARENT' | 'ADMIN';
   avatar?: string;
   totalHours: number;
   joinedDate: string;
   phone?: string;
-  emergencyContact?: string;
   chapter?: string;
   city?: string;
 }
@@ -23,6 +22,8 @@ export interface EventInstance {
   studentSignups: string[]; // user IDs
   parentSignups: string[]; // user IDs
   description?: string;
+  enabled?: boolean;
+  waitlistEnabled?: boolean;
   restrictions?: {
     prerequisiteEvents?: string[]; // event IDs
     minAge?: number;
@@ -42,7 +43,7 @@ export interface Event {
   instances: EventInstance[];
   isRecurring: boolean;
   tags: string[];
-  status: 'draft' | 'published' | 'archived';
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   chapters: string[];
   cities: string[];
 }
@@ -53,9 +54,9 @@ export interface UserEventSignup {
   eventId: string;
   instanceId: string;
   signupDate: string;
-  status: 'confirmed' | 'waitlist' | 'cancelled';
+  status: 'CONFIRMED' | 'WAITLIST' | 'WAITLIST_PENDING' | 'CANCELLED';
   hoursEarned?: number;
-  attendance?: 'present' | 'absent' | 'not_marked';
+  attendance?: 'PRESENT' | 'ABSENT' | 'NOT_MARKED';
 }
 
 export interface Chapter {

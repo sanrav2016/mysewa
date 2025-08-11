@@ -1,85 +1,93 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
+import { authAPI } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
+  loginWithToken: (user: User, token: string) => void;
   logout: () => void;
   isLoading: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Mock users for demo
-const mockUsers: User[] = [
-  {
-    id: '1',
-    name: 'Alex Chen',
-    email: 'alex@student.edu',
-    role: 'student',
-    totalHours: 45,
-    joinedDate: '2024-01-15',
-    phone: '(555) 123-4567'
-  },
-  {
-    id: '2',
-    name: 'Sarah Johnson',
-    email: 'sarah@parent.com',
-    role: 'parent',
-    totalHours: 78,
-    joinedDate: '2023-09-10',
-    phone: '(555) 987-6543',
-    emergencyContact: '(555) 111-2222'
-  },
-  {
-    id: '3',
-    name: 'Dr. Maria Rodriguez',
-    email: 'maria@admin.org',
-    role: 'admin',
-    totalHours: 120,
-    joinedDate: '2023-01-01',
-    phone: '(555) 555-5555'
-  }
-];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Check for stored user session and validate with backend
+    const checkAuth = async () => {
+      const storedUser = localStorage.getItem('currentUser');
+      const token = localStorage.getItem('authToken');
+      
+      if (storedUser && token) {
+        try {
+          const response = await authAPI.getCurrentUser();
+          setUser(response.user);
+        } catch (error) {
+          console.error('Auth validation failed:', error);
+          // Clear invalid session
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('authToken');
+        }
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Mock authentication
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const foundUser = mockUsers.find(u => u.email === email);
-    if (foundUser && password === 'password') {
-      setUser(foundUser);
-      localStorage.setItem('currentUser', JSON.stringify(foundUser));
+    try {
+      const response = await authAPI.login(email, password);
+      setUser(response.user);
       setIsLoading(false);
       return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      setIsLoading(false);
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('currentUser');
+  const loginWithToken = (user: User, token: string) => {
+    setUser(user);
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    localStorage.setItem('authToken', token);
+  };
+
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
+    }
+  };
+
+  const refreshUser = async () => {
+    try {
+      const response = await authAPI.getCurrentUser();
+      setUser(response.user);
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      // Clear invalid session
+      setUser(null);
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, loginWithToken, logout, isLoading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

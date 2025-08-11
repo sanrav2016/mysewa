@@ -24,7 +24,7 @@ html, body {
   width: 100%; /* w-full */
   padding: 0.75rem 1rem; /* py-3 px-4 */
   border-width: 2px; /* border-2 */
-  border-style: dashed; /* border-dashed */
+  border-style: dashed; /*  */
   border-color: #fed7aa; /* border-orange-200 */
   border-radius: 0.5rem; /* rounded-lg */
   background-color: rgba(255, 255, 255, 0.5); /* bg-white/50 */

@@ -12,7 +12,8 @@ import {
   Building,
   MapPin
 } from 'lucide-react';
-import { mockUsers, mockSignups } from '../data/mockData';
+import { usersAPI, signupsAPI } from '../services/api';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 // Types
 type SortBy = 'hours' | 'events';
@@ -27,6 +28,9 @@ export default function Leaderboard() {
   const [chapterFilter, setChapterFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
   const [stickyControls, setStickyControls] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [signups, setSignups] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -40,20 +44,41 @@ export default function Leaderboard() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const chapters = useMemo(() => {
-    const unique = new Set(mockUsers.map(u => u.chapter).filter(Boolean));
-    return Array.from(unique) as string[];
+  // Load users and signups data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [usersData, signupsData] = await Promise.all([
+          usersAPI.getChapterMembers(),
+          signupsAPI.getAll()
+        ]);
+        setUsers(usersData.users || []);
+        setSignups(signupsData.signups || []);
+      } catch (error) {
+        console.error('Failed to load leaderboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, []);
+
+  const chapters = useMemo(() => {
+    const unique = new Set(users.map(u => u.chapter).filter(Boolean));
+    return Array.from(unique) as string[];
+  }, [users]);
 
   const cities = useMemo(() => {
-    const unique = new Set(mockUsers.map(u => u.city).filter(Boolean));
+    const unique = new Set(users.map(u => u.city).filter(Boolean));
     return Array.from(unique) as string[];
-  }, []);
+  }, [users]);
 
   const userStats = useMemo(() => {
-    return mockUsers.map(user => {
-      const userSignups = mockSignups.filter(signup => signup.userId === user.id);
-      const completedEvents = userSignups.filter(signup => signup.status === 'confirmed').length;
+    return users.map(user => {
+      const userSignups = signups.filter(signup => signup.userId === user.id);
+      const completedEvents = userSignups.filter(signup => signup.status === 'CONFIRMED').length;
       const totalHours = userSignups.reduce((sum, signup) => sum + (signup.hoursEarned || 0), 0);
 
       return {
@@ -62,7 +87,7 @@ export default function Leaderboard() {
         calculatedHours: totalHours
       };
     });
-  }, []);
+  }, [users, signups]);
 
   const filteredUsers = useMemo(() => {
     return userStats
@@ -87,7 +112,7 @@ export default function Leaderboard() {
   const locationStats = useMemo(() => {
     const groups: Record<string, any> = {};
 
-    filteredUsers.forEach(user => {
+    filteredUsers.slice(0, 10).forEach(user => {
       const key = viewType === 'chapter' ? user.chapter : user.city;
       if (!key) return;
       if (!groups[key]) {
@@ -142,8 +167,8 @@ export default function Leaderboard() {
   return (
     <div className="space-y-6 p-4 lg:p-8">
       {/* Header */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
-        <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
+      <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50">
+        <h1 className="text-2xl font-semibold text-slate-800 dark:text-white mb-2">
           Leaderboard
         </h1>
         <p className="text-slate-600 dark:text-slate-300">
@@ -152,17 +177,19 @@ export default function Leaderboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 p-6 rounded-2xl text-white shadow-lg">
-          <div className="flex items-center gap-4">
-            <Trophy className="w-8 h-8 text-yellow-200" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-4 rounded-lg text-white shadow-lg hover:scale-105 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-white" />
+            </div>
             <div>
-              <p className="text-yellow-100 text-sm font-medium">Top {
+              <p className="text-yellow-100 text-xs font-medium">Top {
                 viewType == 'individual' ? 'Volunteer' :
                   viewType == 'chapter' ? 'Chapter' :
                     'City'
               }</p>
-              <p className="text-2xl font-bold">
+              <p className="text-xl font-semibold">
                 {viewType === 'individual'
                   ? (filteredUsers[0]?.name || 'N/A')
                   : (locationStats[0]?.name || 'N/A')
@@ -172,12 +199,14 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-400 to-blue-600 p-6 rounded-2xl text-white shadow-lg">
-          <div className="flex items-center gap-4">
-            <Clock className="w-8 h-8 text-blue-200" />
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-lg text-white shadow-lg hover:scale-105 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+              <Clock className="w-5 h-5 text-white" />
+            </div>
             <div>
-              <p className="text-blue-100 text-sm font-medium">Total Hours</p>
-              <p className="text-3xl font-bold">
+              <p className="text-blue-100 text-xs font-medium">Total Hours</p>
+              <p className="text-2xl font-semibold">
                 {viewType === 'individual'
                   ? filteredUsers.reduce((sum, user) => sum + user.calculatedHours, 0)
                   : locationStats.reduce((sum, loc) => sum + loc.totalHours, 0)
@@ -187,31 +216,33 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-400 to-green-600 p-6 rounded-2xl text-white shadow-lg">
-          <div className="flex items-center gap-4">
-            <Users className="w-8 h-8 text-green-200" />
+        <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-lg text-white shadow-lg hover:scale-105 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+              <Users className="w-5 h-5 text-white" />
+            </div>
             <div>
-              <p className="text-green-100 text-sm font-medium">
-                {viewType === 'individual' ? 'Active Volunteers' : `Active ${viewType}s`}
+              <p className="text-green-100 text-xs font-medium">
+                Active {viewType === 'individual' ? 'Volunteers' : viewType === 'chapter' ? 'Chapters' : 'Cities'}
               </p>
-              <p className="text-3xl font-bold">{displayData.length}</p>
+              <p className="text-2xl font-semibold">{displayData.length}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div id="controls" className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-orange-200 dark:border-slate-600 sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b-4 -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-4 sm:p-6 border-4"}`}>
-        <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+      <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-4 sm:p-6"}`}>
+        <div className="flex gap-3 flex-wrap">
           {/* View Type Selector */}
           <div className="flex gap-2 flex-wrap">
             {(['individual', 'chapter', 'city'] as const).map((type) => (
               <button
                 key={type}
                 onClick={() => setViewType(type)}
-                className={`rounded-xl font-medium transition-colors capitalize text-sm ${stickyControls ? "px-3 py-2" : "px-3 sm:px-4 py-2"} ${viewType === type
-                  ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg'
-                  : 'bg-orange-100 dark:bg-slate-700 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-slate-600'
+                className={`rounded-lg font-medium transition-colors capitalize px-3 py-2 text-sm ${viewType === type
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-sm'
+                  : 'bg-indigo-100 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-slate-600'
                   }`}
               >
                 {type}
@@ -219,61 +250,65 @@ export default function Leaderboard() {
             ))}
           </div>
 
-          <div className="overflow-x-auto w-full flex gap-3">
+          <div className="overflow-x-auto max-w-full flex gap-3">
 
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortBy)}
-            className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm ${stickyControls ? "px-3 py-2" : "px-3 sm:px-4 py-2"}`}
-          >
-            <option value="hours">Sort by Hours</option>
-            <option value="events">Sort by Events</option>
-          </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortBy)}
+              className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white px-3 py-2 text-sm ${stickyControls ? "text-sm" : "text-base"}`}
+            >
+              <option value="hours">Sort by Hours</option>
+              <option value="events">Sort by Events</option>
+            </select>
 
-          {viewType === 'individual' && (
-            <>
-              <select
-                value={filterBy}
-                onChange={(e) => setFilterBy(e.target.value as FilterBy)}
-                className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm ${stickyControls ? "px-3 py-2" : "px-3 sm:px-4 py-2"}`}
-              >
-                <option value="all">All Roles</option>
-                <option value="student">Students</option>
-                <option value="parent">Parents</option>
-                <option value="admin">Admins</option>
-              </select>
+            {viewType === 'individual' && (
+              <>
+                <select
+                  value={filterBy}
+                  onChange={(e) => setFilterBy(e.target.value as FilterBy)}
+                  className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white px-3 py-2 text-sm ${stickyControls ? "text-sm" : "text-base"}`}
+                >
+                  <option value="all">All Roles</option>
+                  <option value="student">Students</option>
+                  <option value="parent">Parents</option>
+                  <option value="admin">Admins</option>
+                </select>
 
-              <select
-                value={chapterFilter}
-                onChange={(e) => setChapterFilter(e.target.value)}
-                className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm ${stickyControls ? "px-3 py-2" : "px-3 sm:px-4 py-2"}`}
-              >
-                <option value="all">All Chapters</option>
-                {chapters.map(chapter => (
-                  <option key={chapter} value={chapter}>{chapter}</option>
-                ))}
-              </select>
+                <select
+                  value={chapterFilter}
+                  onChange={(e) => setChapterFilter(e.target.value)}
+                  className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white px-3 py-2 text-sm ${stickyControls ? "text-sm" : "text-base"}`}
+                >
+                  <option value="all">All Chapters</option>
+                  {chapters.map(chapter => (
+                    <option key={chapter} value={chapter}>{chapter}</option>
+                  ))}
+                </select>
 
-              <select
-                value={cityFilter}
-                onChange={(e) => setCityFilter(e.target.value)}
-                className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm ${stickyControls ? "px-3 py-2" : "px-3 sm:px-4 py-2"}`}
-              >
-                <option value="all">All Cities</option>
-                {cities.map(city => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
-              </select>
-            </>
-          )}
+                <select
+                  value={cityFilter}
+                  onChange={(e) => setCityFilter(e.target.value)}
+                  className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white px-3 py-2 text-sm ${stickyControls ? "text-sm" : "text-base"}`}
+                >
+                  <option value="all">All Cities</option>
+                  {cities.map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              </>
+            )}
           </div>
         </div>
       </div>
 
       {/* Leaderboard */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-4 sm:p-6 rounded-2xl shadow-lg border-4 border-orange-200 dark:border-slate-600">
+      <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 sm:p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50">
         <div className="space-y-4">
-          {displayData.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <LoadingSpinner size="lg" />
+            </div>
+          ) : displayData.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-slate-600 dark:text-slate-300 text-lg">
                 No {viewType} found matching your criteria
@@ -347,13 +382,13 @@ export default function Leaderboard() {
                           <h3 className="text-lg font-bold text-slate-800 dark:text-white truncate">
                             {user.name}
                           </h3>
-                          <span className={`px-3 py-1 rounded-lg inline-block text-sm font-medium w-auto capitalize ${user.role === 'admin'
+                          <span className={`px-3 py-1 rounded-lg inline-block text-sm font-medium w-auto capitalize ${user.role === 'ADMIN'
                             ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                            : user.role === 'parent'
+                            : user.role === 'PARENT'
                               ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
                               : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
                             }`}>
-                            {user.role}
+                            {user.role.toLowerCase()}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-slate-600 dark:text-slate-300">
@@ -397,7 +432,7 @@ export default function Leaderboard() {
                 return (
                   <div
                     key={location.name}
-                    className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl border-2 border-dashed border-orange-200 dark:border-slate-500 hover:bg-orange-50 dark:hover:bg-slate-700 transition-all hover:scale-102 group"
+                    className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl border-2  border-orange-200 dark:border-slate-500 hover:bg-orange-50 dark:hover:bg-slate-700 transition-all hover:scale-102 group"
                   >
                     <div className="flex items-center gap-3 sm:gap-4">
                       {getRankIcon(rank)}

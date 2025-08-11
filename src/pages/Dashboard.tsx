@@ -1,132 +1,206 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, Clock, TrendingUp, MapPin, ArrowRight, Bell, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { mockEvents, mockSignups, mockUsers } from '../data/mockData';
-import { format } from 'date-fns';
+import { dashboardAPI, notificationsAPI, eventsAPI } from '../services/api';
+import { formatDistanceToNow } from 'date-fns';
+import { formatLocalDate } from '../utils/dateUtils';
+import LoadingSpinner from '../components/LoadingSpinner';
+import EventInstanceDisplay from '../components/EventInstanceDisplay';
+
+interface DashboardStats {
+  totalHours: number;
+  upcomingEvents: number;
+  pastEvents: number;
+  totalEvents: number;
+  hoursThisMonth: number;
+}
+
+interface EventSignup {
+  id: string;
+  status: string;
+  event: {
+    id: string;
+    title: string;
+    category: string;
+  };
+  instance: {
+    id: string;
+    hours: number;
+    startDate: string;
+    endDate: string;
+    location: string;
+  };
+}
+
+interface Event {
+  id: string;
+  title: string;
+  category: string;
+  status: string;
+  instances: Array<{
+    id: string;
+    hours: number;
+    startDate: string;
+    location: string;
+    signups?: Array<any>;
+    studentCapacity?: number;
+    parentCapacity?: number;
+  }>;
+}
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  date: string;
+  isRead: boolean;
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalHours: 0,
+    upcomingEvents: 0,
+    pastEvents: 0,
+    totalEvents: 0,
+    hoursThisMonth: 0
+  });
+  const [upcomingEvents, setUpcomingEvents] = useState<EventSignup[]>([]);
+  const [recentActivity, setRecentActivity] = useState<EventSignup[]>([]);
+  const [recentNotifications, setRecentNotifications] = useState<Notification[]>([]);
+  const [newEvents, setNewEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Get upcoming events (next 3)
-  const upcomingEvents = mockEvents
-    .flatMap(event =>
-      event.instances.map(instance => ({
-        ...instance,
-        eventTitle: event.title,
-        category: event.category
-      }))
-    )
-    .filter(instance => new Date(instance.startDate) > new Date())
-    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-    .slice(0, 3);
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [statsData, upcomingData, recentData, notificationsData, eventsData] = await Promise.all([
+          dashboardAPI.getStats(),
+          dashboardAPI.getUpcomingEvents(3),
+          dashboardAPI.getRecentActivity(3),
+          notificationsAPI.getAll({ limit: 3 }),
+          eventsAPI.getAll({ limit: 3, sortBy: 'createdAt', sortOrder: 'desc' })
+        ]);
 
-  // Get user's signups
-  const userSignups = mockSignups.filter(signup => signup.userId === user?.id);
-  const totalHoursThisMonth = userSignups
-    .filter(signup => signup.hoursEarned && new Date(signup.signupDate).getMonth() === new Date().getMonth())
-    .reduce((sum, signup) => sum + (signup.hoursEarned || 0), 0);
+        setStats(statsData.stats);
+        setUpcomingEvents(upcomingData.upcomingEvents);
+        setRecentActivity(recentData.recentActivity);
+        setRecentNotifications(notificationsData.notifications || []);
 
-  // Get user's upcoming events
-  const userUpcomingEvents = userSignups
-    .map(signup => {
-      const event = mockEvents.find(e => e.id === signup.eventId);
-      const instance = event?.instances.find(i => i.id === signup.instanceId);
-      return { signup, event, instance };
-    })
-    .filter(item => item.event && item.instance && new Date(item.instance.startDate) > new Date())
-    .sort((a, b) => new Date(a.instance!.startDate).getTime() - new Date(b.instance!.startDate).getTime())
-    .slice(0, 3);
+        // Filter out events the user is already signed up for and disabled instances
+        const userSignupInstanceIds = new Set(upcomingData.upcomingEvents.map((signup: EventSignup) => signup.instance.id));
+        const availableEvents = (eventsData.events || []).filter((event: Event) => {
+          const nextInstance = event.instances?.find((instance: any) => instance.enabled !== false); // First enabled instance
+          return nextInstance && !userSignupInstanceIds.has(nextInstance.id);
+        });
+        setNewEvents(availableEvents.slice(0, 2));
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Mock recent notifications
-  const recentNotifications = [
-    {
-      id: '1',
-      type: 'signup',
-      title: 'Successfully signed up!',
-      message: 'You have been confirmed for Community Garden Cleanup',
-      timestamp: '2 hours ago'
-    },
-    {
-      id: '2',
-      type: 'hours_awarded',
-      title: 'Volunteer hours awarded',
-      message: 'You earned 3 volunteer hours for attending Senior Center Bingo Night',
-      timestamp: '1 day ago'
-    },
-    {
-      id: '3',
-      type: 'reminder',
-      title: 'Event reminder',
-      message: 'Community Garden Cleanup is tomorrow at 9:00 AM',
-      timestamp: '2 days ago'
+    if (user) {
+      fetchDashboardData();
     }
-  ];
+  }, [user]);
+
+  // Transform server notifications to display format
+  const displayNotifications = recentNotifications.map((notification: Notification) => ({
+    id: notification.id,
+    type: notification.type.toLowerCase(),
+    title: notification.title,
+    isRead: notification.isRead,
+    message: notification.description,
+    timestamp: formatDistanceToNow(new Date(notification.date), { addSuffix: true })
+  }));
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'signup':
+      case 'success':
         return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'hours_awarded':
-        return <Clock className="w-4 h-4 text-purple-600" />;
-      case 'reminder':
+      case 'info':
+        return <AlertCircle className="w-4 h-4 text-blue-600" />;
+      case 'warning':
         return <Bell className="w-4 h-4 text-yellow-600" />;
+      case 'error':
+        return <AlertCircle className="w-4 h-4 text-red-600" />;
       default:
         return <AlertCircle className="w-4 h-4 text-slate-600" />;
     }
   };
 
+  if (loading) {
+    return (
+      <div className="text-center flex w-full h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-4 lg:p-8">
       {/* Header */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
-        <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 transform">
+      <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-6 rounded-xl border border-slate-200 dark:border-slate-700/50 shadow-lg">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2">
           Welcome back, {user?.name}! 👋
         </h1>
-        <p className="text-slate-600 dark:text-slate-300 transform">
+        <p className="text-slate-600 dark:text-slate-300">
           Ready to make a difference today?
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-blue-400 to-blue-600 p-6 rounded-2xl text-white shadow-lg transform hover:rotate-3 transition-transform duration-200">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-lg text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm font-medium">Total Hours</p>
-              <p className="text-3xl font-bold">{user?.totalHours}</p>
+              <p className="text-blue-100 text-xs font-medium">Total Hours</p>
+              <p className="text-2xl font-bold">{loading ? '...' : stats.totalHours}</p>
             </div>
-            <Clock className="w-8 h-8 text-blue-200" />
+            <div className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+              <Clock className="w-5 h-5 text-white" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-400 to-green-600 p-6 rounded-2xl text-white shadow-lg transform hover:-rotate-3 transition-transform duration-200">
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-4 rounded-lg text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm font-medium">This Month</p>
-              <p className="text-3xl font-bold">{totalHoursThisMonth}</p>
+              <p className="text-emerald-100 text-xs font-medium">This Month</p>
+              <p className="text-2xl font-bold">{loading ? '...' : stats.hoursThisMonth}</p>
             </div>
-            <TrendingUp className="w-8 h-8 text-green-200" />
+            <div className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-400 to-purple-600 p-6 rounded-2xl text-white shadow-lg transform hover:rotate-3 transition-transform duration-200">
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-lg text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm font-medium">My Events</p>
-              <p className="text-3xl font-bold">{userSignups.length}</p>
+              <p className="text-purple-100 text-xs font-medium">Upcoming Events</p>
+              <p className="text-2xl font-bold">{loading ? '...' : stats.upcomingEvents}</p>
             </div>
-            <Calendar className="w-8 h-8 text-purple-200" />
+            <div className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-white" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-400 to-red-500 p-6 rounded-2xl text-white shadow-lg transform hover:-rotate-3 transition-transform duration-200">
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-4 rounded-lg text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-100 text-sm font-medium">Members</p>
-              <p className="text-3xl font-bold">5</p>
+              <p className="text-orange-100 text-xs font-medium">Events Completed</p>
+              <p className="text-2xl font-bold">{loading ? '...' : stats.pastEvents}</p>
             </div>
-            <Users className="w-8 h-8 text-orange-200" />
+            <div className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+              <Users className="w-5 h-5 text-white" />
+            </div>
           </div>
         </div>
       </div>
@@ -134,218 +208,249 @@ export default function Dashboard() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Left Column - My Events & Notifications */}
-        <div className="xl:col-span-2 space-y-6">
+        <div className="xl:col-span-2 space-y-4">
           {/* My Upcoming Events */}
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white transform">
-                My Agenda
-              </h2>
-              <Link
-                to="/history"
-                className="flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transform hover:scale-105 transition-all duration-200"
-              >
-                View All <ArrowRight className="w-4 h-4" />
-              </Link>
+          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl border border-slate-200 dark:border-slate-700/50 shadow-lg">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700/50">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  My Agenda
+                </h2>
+                <Link
+                  to="/activity"
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:scale-105 transition-all"
+                >
+                  View All
+                </Link>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              {userUpcomingEvents.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-slate-600 dark:text-slate-300 text-md mb-4">
-                    No upcoming events signed up for
-                  </p>
+            <div className="p-6">
+              <div className="space-y-4">
+                {loading ? (
+                  <div className="text-center py-8">
+                    <LoadingSpinner size="lg" />
+                  </div>
+                ) : upcomingEvents.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">
+                      No upcoming events signed up for
+                    </p>
+                    <Link
+                      to="/events"
+                      className="text-xs px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full hover:from-indigo-600 hover:to-purple-600 transition-all shadow-sm hover:scale-105 hover:shadow-md"
+                    >
+                      Browse Events
+                    </Link>
+                  </div>
+                ) : upcomingEvents.map((signup: EventSignup, index) => (
                   <Link
-                    to="/events"
-                    className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 hover:rotate-1"
+                    key={signup.id}
+                    to={`/sessions/${signup.instance.id}`}
+                    className="block"
                   >
-                    Browse Events <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              ) : userUpcomingEvents.map(({ signup, event, instance }, index) => (
-                <Link
-                  key={signup.id}
-                  to={`/sessions/${instance!.id}`}
-                  className="block"
-                >
-                  <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl border-2 border-orange-200 dark:border-slate-500 transform hover:scale-102 cursor-pointer transition-transform duration-200">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex flex-col md:flex-row mb-1 justify-between">
-                          <div className="font-semibold text-slate-800 dark:text-white">
-                            {event!.title}
-                          </div>
-                          <div>
-                            <span className={`inline-block px-2 py-1 rounded-lg text-xs font-medium ${signup.status === 'confirmed'
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                              : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
-                              }`}>
-                              {signup.status.charAt(0).toUpperCase() + signup.status.slice(1)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-slate-600 dark:text-slate-300 min-w-0">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{format(new Date(instance!.startDate), 'MMM d, h:mm a')}</span>
-                          </div>
-                          <div className="flex items-center gap-1 min-w-0">
-                            <MapPin className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{instance!.location}</span>
-                          </div>
+                    <div className="border border-slate-200 dark:border-slate-700/50 flex items-center space-x-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-all hover:scale-[1.02]">
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                          {signup.event.title}
+                        </p>
+                        <div className="flex items-center space-x-4 mt-1">
+                          <EventInstanceDisplay instance={signup.instance} />
                         </div>
                       </div>
+                      <div className={`text-xs px-2 py-1 rounded-full ${signup.status === 'CONFIRMED'
+                        ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                        : signup.status === 'WAITLIST_PENDING'
+                          ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                          : signup.status === 'WAITLIST' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300' :
+                            'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                        }`}>
+                        {signup.status === 'WAITLIST_PENDING' ? 'Pending Response' : signup.status.charAt(0).toUpperCase() + signup.status.slice(1).toLowerCase()}
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* New Events */}
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white transform">
-                New Events
-              </h2>
-              <Link
-                to="/events"
-                className="flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transform hover:scale-105 transition-all duration-200"
-              >
-                View All <ArrowRight className="w-4 h-4" />
-              </Link>
+          <div className="bg-white/50 dark:bg-slate-800/60 backdrop-blur-md rounded-xl border border-white dark:border-slate-700/50 shadow-lg">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700/50">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  New Events
+                </h2>
+                <Link
+                  to="/events"
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:scale-105 transition-all"
+                >
+                  View All
+                </Link>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              {upcomingEvents.length === 0 ? (
-                <p className="text-slate-600 dark:text-slate-300 text-md p-6 text-center">
-                  No new events available
-                </p>
-              ) : upcomingEvents.map((event, index) => (
-                <Link
-                  key={event.id}
-                  to={`/sessions/${event.id}`}
-                  className="block"
-                >
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl border-2 border-blue-200 dark:border-slate-500 transform hover:scale-102 cursor-pointer transition-transform duration-200">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex flex-col md:flex-row mb-1 justify-between">
-                          <div className="font-semibold text-slate-800 dark:text-white">
-                            {event.eventTitle}
-                          </div>
-                          <div className="flex flex-wrap gap-2 items-center">
-                            <span className="text-xs text-slate-600 dark:text-slate-300">
-                              {event.studentSignups.length + event.parentSignups.length}/{event.studentCapacity + event.parentCapacity} spots
+            <div className="p-6">
+              <div className="space-y-4">
+                {loading ? (
+                  <div className="text-center py-8">
+                    <LoadingSpinner size="lg" />
+                  </div>
+                ) : newEvents.length === 0 ? (
+                  <p className="text-slate-600 dark:text-slate-300 text-sm p-6 text-center">
+                    No new events available
+                  </p>
+                ) : newEvents.map((event: Event, index) => {
+                  const nextInstance = event.instances?.[0];
+                  if (!nextInstance) return null;
+
+                  const totalSignups = nextInstance.signups?.length || 0;
+                  const totalCapacity = (nextInstance.studentCapacity || 0) + (nextInstance.parentCapacity || 0);
+
+                  return (
+                    <Link
+                      key={event.id}
+                      to={`/events/${event.id}`}
+                      className="block"
+                    >
+                      <div className="border border-slate-200 dark:border-slate-700/50 flex items-center space-x-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-all hover:scale-[1.02]">
+                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                          <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                            {event.title}
+                          </p>
+                          <div className="flex items-center space-x-4 mt-1">
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              {totalSignups}/{totalCapacity} spots
                             </span>
-                            <span className="inline-block bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-lg text-xs font-medium">
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
                               {event.category}
                             </span>
+                            <EventInstanceDisplay instance={nextInstance} />
                           </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-slate-600 dark:text-slate-300 min-w-0">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{format(new Date(event.startDate), 'MMM d, h:mm a')}</span>
-                          </div>
-                          <div className="flex items-center gap-1 min-w-0">
-                            <MapPin className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{event.location}</span>
-                          </div>
-                        </div>
+                        <button className="text-xs px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full hover:from-indigo-600 hover:to-purple-600 transition-all shadow-sm hover:scale-105 hover:shadow-md">
+                          Join
+                        </button>
                       </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Right Column - Notifications */}
-        <div className="space-y-6">
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg transform border-4 border-orange-200 dark:border-slate-600">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white transform">
-                Recent
-              </h2>
-              <Link
-                to="/activity"
-                className="flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transform hover:scale-105 transition-all duration-200 whitespace-nowrap"
-              >
-                View All <ArrowRight className="w-4 h-4" />
-              </Link>
+        <div className="space-y-4">
+          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl border border-slate-200 dark:border-slate-700/50 shadow-lg">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700/50">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Recent
+                </h2>
+                <Link
+                  to="/notifications"
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:scale-105 transition-all"
+                >
+                  View All
+                </Link>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              {recentNotifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className="p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 border border-slate-200 dark:border-slate-500"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-1">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-slate-800 dark:text-white text-sm mb-1">
-                        {notification.title}
-                      </h4>
-                      <p className="text-slate-600 dark:text-slate-300 text-xs mb-1">
-                        {notification.message}
-                      </p>
-                      <p className="text-slate-500 dark:text-slate-400 text-xs">
-                        {notification.timestamp}
-                      </p>
+            <div className="p-6">
+              <div className="space-y-3">
+                {displayNotifications.length > 0 ? displayNotifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className="border border-slate-200 dark:border-slate-700/50 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-1">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-slate-900 dark:text-white text-sm mb-1 flex items-center gap-1">
+                          {notification.title}
+                          {!notification.isRead && <span className="flex items-center gap-1 text-xs font-medium text-orange-600 dark:text-orange-400">
+                            <div className="w-1 h-1 rounded-full bg-orange-600 dark:bg-orange-400"></div>
+                            New
+                          </span>}
+                        </h4>
+                        <p className="text-slate-600 dark:text-slate-300 text-xs mb-1">
+                          {notification.message}
+                        </p>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs">
+                          {notification.timestamp}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )) : (
+                  <div className="text-center py-8">
+                    <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">
+                      No recent notifications
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions - moved to bottom */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link
-          to="/calendar"
-          className="bg-gradient-to-br from-indigo-400 to-purple-500 p-6 rounded-2xl text-white shadow-lg transform hover:scale-105 hover:rotate-1 transition-all duration-200 group"
-        >
-          <div className="flex items-center gap-4">
-            <Calendar className="w-8 h-8 group-hover:scale-110 transition-transform duration-200" />
-            <div>
-              <h3 className="text-xl font-bold mb-1">Browse Calendar</h3>
-              <p className="text-indigo-100">See all events running this month</p>
-            </div>
-          </div>
-        </Link>
+      {/* Quick Actions */}
+      <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl border border-slate-200 dark:border-slate-700/50 shadow-lg">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700/50">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Quick Actions</h3>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link
+              to="/calendar"
+              className="flex items-center space-x-3 p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/30 dark:hover:to-blue-700/30 transition-all border border-blue-200 dark:border-blue-800"
+            >
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-slate-900 dark:text-white">Browse Calendar</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">See all events running this month</p>
+              </div>
+            </Link>
 
-        <Link
-          to="/events"
-          className="bg-gradient-to-br from-emerald-400 to-teal-500 p-6 rounded-2xl text-white shadow-lg transform hover:scale-105 hover:-rotate-1 transition-all duration-200 group"
-        >
-          <div className="flex items-center gap-4">
-            <Users className="w-8 h-8 group-hover:scale-110 transition-transform duration-200" />
-            <div>
-              <h3 className="text-xl font-bold mb-1">Discover Events</h3>
-              <p className="text-emerald-100">Find new volunteer opportunities</p>
-            </div>
-          </div>
-        </Link>
+            <Link
+              to="/events"
+              className="flex items-center space-x-3 p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-lg hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-800/30 dark:hover:to-emerald-700/30 transition-all border border-emerald-200 dark:border-emerald-800"
+            >
+              <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-slate-900 dark:text-white">Discover Events</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Find new volunteer opportunities</p>
+              </div>
+            </Link>
 
-        <Link
-          to="/chapter"
-          className="bg-gradient-to-br from-pink-400 to-red-500 p-6 rounded-2xl text-white shadow-lg transform hover:scale-105 hover:rotate-1 transition-all duration-200 group"
-        >
-          <div className="flex items-center gap-4">
-            <Users className="w-8 h-8 group-hover:scale-110 transition-transform duration-200" />
-            <div>
-              <h3 className="text-xl font-bold mb-1">View Chapter</h3>
-              <p className="text-emerald-100">Meet new volunteers in your area</p>
-            </div>
+            <Link
+              to="/chapter"
+              className="flex items-center space-x-3 p-4 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-800/30 dark:hover:to-purple-700/30 transition-all border border-purple-200 dark:border-purple-800"
+            >
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-slate-900 dark:text-white">View Chapter</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Meet new volunteers in your area</p>
+              </div>
+            </Link>
           </div>
-        </Link>
+        </div>
       </div>
     </div>
   );
