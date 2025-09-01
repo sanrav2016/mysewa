@@ -22,7 +22,7 @@ export default function SessionDetail() {
     const [sessionSignups, setSessionSignups] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [cancelReason, setCancelReason] = useState('');
+
     const [showManageModal, setShowManageModal] = useState(false);
     const [studentSearch, setStudentSearch] = useState('');
     const [parentSearch, setParentSearch] = useState('');
@@ -150,10 +150,46 @@ export default function SessionDetail() {
             });
         };
 
+        // Listen for session cancellation
+        const handleSessionCancelled = (data: any) => {
+            console.log('🚫 Session cancelled:', data);
+            
+            // Reload session data to get the updated status
+            loadSessionData();
+            
+            // Show notification
+            addNotification(
+                'warning',
+                'Session Cancelled',
+                'This session has been cancelled by an administrator.',
+                false
+            );
+        };
+
+        // Listen for session completion
+        const handleSessionCompleted = (data: any) => {
+            console.log('✅ Session completed:', data);
+            
+            // Reload session data to get the updated status
+            loadSessionData();
+            
+            // Show notification
+            addNotification(
+                'info',
+                'Session Completed',
+                'This session has been marked as completed by an administrator.',
+                false
+            );
+        };
+
         socket.on('signup-updated', handleSignupUpdate);
+        socket.on('session-cancelled', handleSessionCancelled);
+        socket.on('session-completed', handleSessionCompleted);
 
         return () => {
             socket.off('signup-updated', handleSignupUpdate);
+            socket.off('session-cancelled', handleSessionCancelled);
+            socket.off('session-completed', handleSessionCompleted);
             leaveSession(sessionId);
         };
     }, [sessionId, socket, joinSession, leaveSession]);
@@ -211,6 +247,7 @@ export default function SessionDetail() {
 
     const hasOpenSpots = () => {
         if (!sessionData.enabled || sessionData.enabled === false) return false;
+        if (sessionData.status === 'CANCELLED' || sessionData.status === 'COMPLETED') return false;
         if (userRole === 'STUDENT') {
             // Count confirmed + waitlist_pending (reserved spots)
             const reservedSpots = sessionSignups.filter(s =>
@@ -278,7 +315,7 @@ export default function SessionDetail() {
                                         </div>
                                         <ol className="space-y-2 ml-4 list-disc">
                                             <li>Arrive at the event on time wearing your Sewa t-shirt/hoodie.</li>
-                                            <li>Receive volunteer hours after admin verification of attendance.</li>
+                                            <li>Receive volunteer hours after admin approval.</li>
                                             <li>Coordinate cancellations with any parent volunteers or admins for this event.</li>
                                         </ol>
                                     </div>
@@ -291,7 +328,7 @@ export default function SessionDetail() {
                                 </div>
                                 <ol className="space-y-2 ml-4 list-disc">
                                     <li>Arrive at the event on time wearing your Sewa t-shirt/hoodie.</li>
-                                    <li>Receive volunteer hours after admin verification of attendance.</li>
+                                    <li>Receive volunteer hours after admin approval.</li>
                                     <li>Coordinate cancellations with any parent volunteers or admins for this event.</li>
                                 </ol>
                             </div>
@@ -333,24 +370,8 @@ export default function SessionDetail() {
                 title = 'Cancel Signup';
                 children = (
                     <div className="space-y-4">
-                        <div>
-                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Please choose a reason for cancellation:
-                            </p>
-                            <select required
-                                className="mt-2 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                                onChange={(e) => setCancelReason(e.target.value)}
-                            >
-                                <option value="">Select a reason</option>
-                                <option value="scheduling_conflict">Scheduling conflict</option>
-                                <option value="not_feeling_well">Not feeling well</option>
-                                <option value="transportation_issues">Can't get a ride</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-
-                        <div className="text-sm font-medium">
-                            Cancelling your signup will be reflected in your user history and will relinquish your spot to anyone currently on the session waitlist. Cancelling 24 hours before the event is discouraged.
+                        <div className="font-medium">
+                            Are you sure you want to cancel your signup? It will be reflected in your user history and will relinquish your spot to anyone currently on the session waitlist. Cancelling 24 hours before the event is discouraged.
                         </div>
                     </div>
                 );
@@ -375,6 +396,7 @@ export default function SessionDetail() {
                 confirmText = 'Decline Spot';
                 confirmColor = 'bg-red-500 hover:bg-red-600 border-red-400';
                 break;
+
         }
 
         setModalState({
@@ -456,6 +478,7 @@ export default function SessionDetail() {
                     // Reload data to update the UI
                     await loadSessionData();
                     break;
+
             }
         } catch (error: any) {
             console.error('Failed to perform action:', error);
@@ -489,7 +512,7 @@ export default function SessionDetail() {
         if (!participant) return null;
 
         const isStudent = participant.role === 'STUDENT';
-        const attendanceStatus = signup.attendance;
+        const approvalStatus = signup.approval;
 
         return (
             <Link
@@ -525,17 +548,17 @@ export default function SessionDetail() {
                             <p className="text-sm text-slate-600 dark:text-slate-300">{participant.email}</p>
                         </div>
                         <div>
-                            {attendanceStatus && (
+                            {approvalStatus && (
                                 <div className="flex items-center gap-1">
-                                    {attendanceStatus === 'PRESENT' ? (
+                                    {approvalStatus === 'APPROVED' ? (
                                         <>
                                             <CheckCircle className="w-4 h-4 text-green-600" />
-                                            <span className="text-xs text-green-600 font-medium">Present</span>
+                                            <span className="text-xs text-green-600 font-medium">Approved</span>
                                         </>
-                                    ) : attendanceStatus === 'ABSENT' ? (
+                                    ) : approvalStatus === 'DENIED' ? (
                                         <>
                                             <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                                            <span className="text-xs text-red-600 font-medium dark:text-red-400">Absent</span>
+                                            <span className="text-xs text-red-600 font-medium dark:text-red-400">Denied</span>
                                         </>
                                     ) : null}
                                 </div>
@@ -567,6 +590,28 @@ export default function SessionDetail() {
                     <div className="flex items-center justify-center gap-2">
                         <XCircle className="w-5 h-5" />
                         Session Closed
+                    </div>
+                </div>
+            );
+        }
+
+        if (sessionData.status === 'CANCELLED') {
+            return (
+                <div className="bg-gradient-to-r from-red-400 to-red-500 text-white px-8 py-4 rounded-2xl font-semibold text-center shadow-lg opacity-75">
+                    <div className="flex items-center justify-center gap-2">
+                        <XCircle className="w-5 h-5" />
+                        Session Cancelled
+                    </div>
+                </div>
+            );
+        }
+
+        if (sessionData.status === 'COMPLETED') {
+            return (
+                <div className="bg-gradient-to-r from-green-400 to-green-500 text-white px-8 py-4 rounded-2xl font-semibold text-center shadow-lg opacity-75">
+                    <div className="flex items-center justify-center gap-2">
+                        <CheckCircle className="w-5 h-5" />
+                        Session Completed
                     </div>
                 </div>
             );
@@ -836,8 +881,18 @@ export default function SessionDetail() {
                             </h1>
                             <div className="flex flex-wrap items-center gap-3">
                                 {
-                                    !sessionData.enabled && <span className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-3 py-1 rounded-full font-medium text-sm">Closed</span>
+                                    !sessionData.enabled && <span className="bg-slate-100 dark:bg-slate-900/30 text-slate-800 dark:text-slate-200 px-3 py-1 rounded-full font-medium text-sm">Closed</span>
                                 }
+                                {sessionData.status && sessionData.status !== 'ACTIVE' && (
+                                    <span className={`px-3 py-1 rounded-full font-medium text-sm ${
+                                        sessionData.status === 'CANCELLED' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' :
+                                        sessionData.status === 'COMPLETED' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' :
+                                        sessionData.status === 'POSTPONED' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' :
+                                        'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                    }`}>
+                                        {sessionData.status.charAt(0) + sessionData.status.slice(1).toLowerCase()}
+                                    </span>
+                                )}
                                 <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 px-3 py-1 rounded-full font-medium text-sm">
                                     {sessionData.category}
                                 </span>
@@ -850,6 +905,7 @@ export default function SessionDetail() {
                         </div>
                         <div className="flex flex-wrap md:flex-col justify-center md:justify-end gap-3 w-full md:w-auto">
                             {renderActionButton()}
+
                             {user?.role === 'ADMIN' && (
                                 <Link
                                     to={`/edit-session/${sessionData.id}`}
@@ -876,8 +932,8 @@ export default function SessionDetail() {
                     </div>
 
                     {/* Session Details */}
-                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 gap-x-16 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
-                        <EventInstanceDisplay instance={sessionData} />
+                    <div className="flex flex-col gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
+                        <EventInstanceDisplay instance={sessionData} size="large" showIcons={true} />
 
                         <div className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
                             <Users className="w-5 h-5 mt-1" />
@@ -1012,7 +1068,7 @@ export default function SessionDetail() {
                 onClose={() => setShowManageModal(false)}
                 sessionData={sessionData}
                 sessionSignups={sessionSignups}
-                defaultHours={3}
+                defaultHours={sessionData?.hours || 3}
                 onDataUpdate={loadSessionData}
                 userRole={user?.role}
             />

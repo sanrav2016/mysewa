@@ -30,6 +30,8 @@ interface EventSignup {
     startDate: string;
     endDate: string;
     location: string;
+    status?: string;
+    cancelledAt?: string;
   };
 }
 
@@ -79,14 +81,15 @@ export default function Dashboard() {
         setLoading(true);
         const [statsData, upcomingData, recentData, notificationsData, eventsData] = await Promise.all([
           dashboardAPI.getStats(),
-          dashboardAPI.getUpcomingEvents(3),
+          dashboardAPI.getUpcomingEvents(10),
           dashboardAPI.getRecentActivity(3),
           notificationsAPI.getAll({ limit: 3 }),
-          eventsAPI.getAll({ limit: 3, sortBy: 'createdAt', sortOrder: 'desc' })
+          eventsAPI.getAll({ limit: 10, sortBy: 'createdAt', sortOrder: 'desc' })
         ]);
 
         setStats(statsData.stats);
-        setUpcomingEvents(upcomingData.upcomingEvents);
+        // Don't filter out cancelled sessions - show them with status
+        setUpcomingEvents(upcomingData.upcomingEvents.slice(0, 2));
         setRecentActivity(recentData.recentActivity);
         setRecentNotifications(notificationsData.notifications || []);
 
@@ -249,26 +252,44 @@ export default function Dashboard() {
                     to={`/sessions/${signup.instance.id}`}
                     className="block"
                   >
-                    <div className="border border-slate-200 dark:border-slate-700/50 flex items-center space-x-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-all hover:scale-[1.02]">
-                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                        <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <div className={`border border-slate-200 dark:border-slate-700/50 flex items-center space-x-4 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                      signup.instance.status === 'CANCELLED' 
+                        ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' 
+                        : 'bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        signup.instance.status === 'CANCELLED'
+                          ? 'bg-red-100 dark:bg-red-900/30'
+                          : 'bg-blue-100 dark:bg-blue-900/20'
+                      }`}>
+                        <Calendar className={`w-5 h-5 ${
+                          signup.instance.status === 'CANCELLED'
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-blue-600 dark:text-blue-400'
+                        }`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                        <p className={`text-sm font-medium truncate ${
+                          signup.instance.status === 'CANCELLED'
+                            ? 'text-red-800 dark:text-red-200'
+                            : 'text-slate-900 dark:text-white'
+                        }`}>
                           {signup.event.title}
                         </p>
                         <div className="flex items-center space-x-4 mt-1">
-                          <EventInstanceDisplay instance={signup.instance} />
+                          <EventInstanceDisplay instance={signup.instance} showStatus={true} />
                         </div>
                       </div>
-                      <div className={`text-xs px-2 py-1 rounded-full ${signup.status === 'CONFIRMED'
-                        ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                        : signup.status === 'WAITLIST_PENDING'
-                          ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                          : signup.status === 'WAITLIST' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300' :
-                            'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                        }`}>
-                        {signup.status === 'WAITLIST_PENDING' ? 'Pending Response' : signup.status.charAt(0).toUpperCase() + signup.status.slice(1).toLowerCase()}
+                      <div className="flex flex-col gap-1">
+                        <div className={`text-xs px-2 py-1 rounded-full ${signup.status === 'CONFIRMED'
+                          ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                          : signup.status === 'WAITLIST_PENDING'
+                            ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                            : signup.status === 'WAITLIST' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300' :
+                              'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                          }`}>
+                          {signup.status === 'WAITLIST_PENDING' ? 'Pending Response' : signup.status.charAt(0).toUpperCase() + signup.status.slice(1).toLowerCase()}
+                        </div>
                       </div>
                     </div>
                   </Link>
@@ -325,12 +346,6 @@ export default function Dashboard() {
                             {event.title}
                           </p>
                           <div className="flex items-center space-x-4 mt-1">
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                              {totalSignups}/{totalCapacity} spots
-                            </span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                              {event.category}
-                            </span>
                             <EventInstanceDisplay instance={nextInstance} />
                           </div>
                         </div>

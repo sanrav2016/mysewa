@@ -22,16 +22,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkAuth = async () => {
       const storedUser = localStorage.getItem('currentUser');
       const token = localStorage.getItem('authToken');
-      
+
       if (storedUser && token) {
         try {
           const response = await authAPI.getCurrentUser();
           setUser(response.user);
         } catch (error) {
-          console.error('Auth validation failed:', error);
-          // Clear invalid session
-          localStorage.removeItem('currentUser');
-          localStorage.removeItem('authToken');
+          handleAuthError(error);
         }
       }
       setIsLoading(false);
@@ -42,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
+
     try {
       const response = await authAPI.login(email, password);
       setUser(response.user);
@@ -73,16 +70,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleAuthError = (error: any) => {
+    console.error('Auth error:', error);
+    setUser(null);
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
+
+    // Only redirect if we're not already on the login page
+    const currentPath = location.pathname + location.search;
+    if (currentPath !== '/login' && !currentPath.startsWith('/login')) {
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+    }
+  };
+
   const refreshUser = async () => {
     try {
       const response = await authAPI.getCurrentUser();
       setUser(response.user);
     } catch (error) {
-      console.error('Failed to refresh user:', error);
-      // Clear invalid session
-      setUser(null);
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('authToken');
+      handleAuthError(error);
     }
   };
 

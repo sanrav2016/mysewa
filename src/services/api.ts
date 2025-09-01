@@ -38,16 +38,10 @@ const getAuthToken = () => {
 // Helper function to handle API responses
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
-    // Handle 401 errors by redirecting to login
+    // Handle 401 errors by clearing auth data
     if (response.status === 401) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('currentUser');
-      
-      const currentPath = window.location.pathname + window.location.search;
-      if (currentPath !== '/login') {
-        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
-        return; // Don't throw error, just redirect
-      }
     }
     
     const errorData = await response.json().catch(() => ({}));
@@ -229,6 +223,13 @@ export const eventsAPI = {
   getInstanceById: async (instanceId: string) => {
     return apiRequest(`/events/instances/${instanceId}`);
   },
+
+  updateSessionStatus: async (instanceId: string, statusData: { status: string; reason?: string }) => {
+    return apiRequest(`/events/instances/${instanceId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(statusData),
+    });
+  },
 };
 
 // Signups API
@@ -260,8 +261,8 @@ export const signupsAPI = {
     return apiRequest(`/signups/${id}`, { method: 'DELETE' });
   },
 
-  bulkUpdateAttendance: async (signups: any[]) => {
-    return apiRequest('/signups/bulk-attendance', {
+  bulkUpdateApproval: async (signups: any[]) => {
+    return apiRequest('/signups/bulk-approval', {
       method: 'PATCH',
       body: JSON.stringify({ signups }),
     });

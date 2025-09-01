@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, ArrowLeft, UserPlus, UserMinus, CheckCircle, XCircle, User, Shield, UserCheck, Search, Edit, Save, Undo2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, ArrowLeft, UserPlus, UserMinus, CheckCircle, XCircle, User, Shield, UserCheck, Search, Edit, Save, Undo2, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { usersAPI, signupsAPI } from '../services/api';
@@ -95,6 +95,7 @@ export function ParticipantManagementModal({ isOpen, onClose, sessionData, sessi
     const [searchTerm, setSearchTerm] = useState('');
     const [participants, setParticipants] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
     const { addNotification } = useNotification();
     const isAdmin = userRole === 'ADMIN';
     const isParent = userRole === 'PARENT';
@@ -107,15 +108,16 @@ export function ParticipantManagementModal({ isOpen, onClose, sessionData, sessi
             try {
                 const response = await usersAPI.getAll();
                 const users = response.users || [];
-                const participantData = sessionSignups.map(signup => {
-                    const user = users.find((u: any) => u.id === signup.userId);
-                    return {
-                        ...signup,
-                        user,
-                        tempHours: signup.hoursEarned || defaultHours,
-                        tempAttendance: signup.attendance || 'NOT_MARKED'
-                    };
-                }).filter(p => p.user);
+                                    const participantData = sessionSignups.map(signup => {
+                        const user = users.find((u: any) => u.id === signup.userId);
+                        return {
+                            ...signup,
+                            user,
+                            tempHours: signup.hoursEarned || defaultHours,
+                            tempApproval: signup.approval || 'NOT_MARKED',
+                            tempComment: signup.comment || ''
+                        };
+                    }).filter(p => p.user);
                 setParticipants(participantData);
             } catch (error) {
                 console.error('Failed to load participants:', error);
@@ -141,7 +143,8 @@ export function ParticipantManagementModal({ isOpen, onClose, sessionData, sessi
                             ...signup,
                             user,
                             tempHours: signup.hoursEarned || defaultHours,
-                            tempAttendance: signup.attendance || 'NOT_MARKED'
+                            tempApproval: signup.approval || 'NOT_MARKED',
+                            tempComment: signup.comment || ''
                         };
                     }).filter(p => p.user);
                     setParticipants(participantData);
@@ -165,8 +168,8 @@ export function ParticipantManagementModal({ isOpen, onClose, sessionData, sessi
             if (p.userId === userId) {
                 const updatedParticipant = { ...p, [field]: value };
                 
-                // Auto-set hours to 0 when marked absent
-                if (field === 'tempAttendance' && value === 'ABSENT') {
+                // Auto-set hours to 0 when marked denied
+                if (field === 'tempApproval' && value === 'DENIED') {
                     updatedParticipant.tempHours = 0;
                 }
                 
@@ -176,9 +179,9 @@ export function ParticipantManagementModal({ isOpen, onClose, sessionData, sessi
         }));
     };
 
-    const markAllPresent = () => {
+    const markAllApproved = () => {
         setParticipants(prev => prev.map(p =>
-            p.markedForRemoval ? p : { ...p, tempAttendance: 'present' }
+            p.markedForRemoval ? p : { ...p, tempApproval: 'APPROVED' }
         ));
     };
 
@@ -199,8 +202,9 @@ export function ParticipantManagementModal({ isOpen, onClose, sessionData, sessi
                     removals: participantsToRemove.map(p => p.id),
                     updates: remainingParticipants.map(participant => ({
                         id: participant.id,
-                        attendance: participant.tempAttendance,
-                        hoursEarned: participant.tempHours
+                        approval: participant.tempApproval,
+                        hoursEarned: participant.tempHours,
+                        comment: participant.tempComment
                     }))
                 });
 
@@ -208,27 +212,30 @@ export function ParticipantManagementModal({ isOpen, onClose, sessionData, sessi
                 const updatedCount = remainingParticipants.length;
 
                 if (removedCount > 0 && updatedCount > 0) {
-                    message = `${updatedCount} participants updated and ${removedCount} participants removed successfully!`;
+                    message = `${updatedCount} participant${updatedCount !== 1 ? 's' : ''} updated and ${removedCount} participant${removedCount !== 1 ? 's' : ''} removed successfully!`;
                 } else if (removedCount > 0) {
-                    message = `${removedCount} participants removed successfully!`;
+                    message = `${removedCount} participant${removedCount !== 1 ? 's' : ''} removed successfully!`;
                 } else {
-                    message = `${updatedCount} participants updated successfully!`;
+                    message = `${updatedCount} participant${updatedCount !== 1 ? 's' : ''} updated successfully!`;
                 }
             } else if (isParent) {
-                // Parents can only update attendance and hours
+                // Parents can only update approval status and hours
                 result = await signupsAPI.parentBulkUpdate(
                     sessionData.id,
                     remainingParticipants.map(participant => ({
                         id: participant.id,
-                        attendance: participant.tempAttendance,
-                        hoursEarned: participant.tempHours
+                        approval: participant.tempApproval,
+                        hoursEarned: participant.tempHours,
+                        comment: participant.tempComment
                     }))
                 );
 
-                message = `${remainingParticipants.length} participants updated successfully!`;
+                message = isAdmin 
+                  ? `${remainingParticipants.length} participants updated successfully!`
+                  : `${remainingParticipants.length} participants' hours updated successfully!`;
             }
 
-            addNotification('success', 'Changes Saved', message);
+            addNotification('success', 'Changes Saved', message, true, sessionData.id);
 
             // Trigger parent update if callback provided
             if (onDataUpdate) {
@@ -257,6 +264,22 @@ export function ParticipantManagementModal({ isOpen, onClose, sessionData, sessi
         ));
     };
 
+    const toggleCommentExpansion = (userId: string) => {
+        setExpandedComments(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(userId)) {
+                newSet.delete(userId);
+            } else {
+                newSet.add(userId);
+            }
+            return newSet;
+        });
+    };
+
+    const shouldShowComment = (participant: any) => {
+        return participant.tempComment || expandedComments.has(participant.userId);
+    };
+
     return (
         <div
             className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -273,7 +296,7 @@ export function ParticipantManagementModal({ isOpen, onClose, sessionData, sessi
                         </h3>
                         {isParent && (
                             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                                You can mark attendance and update hours. Only admins can remove participants.
+                                You can update hours. Only admins can mark approval status and remove participants.
                             </p>
                         )}
                     </div>
@@ -299,13 +322,15 @@ export function ParticipantManagementModal({ isOpen, onClose, sessionData, sessi
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <button
-                            onClick={markAllPresent}
-                            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:shadow-md text-white px-3 py-2 rounded-lg font-medium transition-all hover:scale-105 text-sm"
-                        >
-                            <UserCheck className="w-4 h-4" />
-                            Mark All Present
-                        </button>
+                        {isAdmin && (
+                            <button
+                                onClick={markAllApproved}
+                                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:shadow-md text-white px-3 py-2 rounded-lg font-medium transition-all hover:scale-105 text-sm"
+                            >
+                                <UserCheck className="w-4 h-4" />
+                                Approve All
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -410,43 +435,91 @@ export function ParticipantManagementModal({ isOpen, onClose, sessionData, sessi
                                     </div>
 
                                     {/* Right side - Controls */}
-                                    <div className="flex items-center gap-3 ml-4">
-                                        {/* Attendance and Hours Controls */}
-                                        <div className="flex items-center gap-2 bg-white/50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-200 dark:border-slate-600">
-                                            {/* Attendance */}
-                                            <div className="flex items-center gap-1">
-                                                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                                                    Attendance:
-                                                </label>
-                                                <select
-                                                    value={participant.tempAttendance}
-                                                    onChange={(e) => updateParticipant(participant.userId, 'tempAttendance', e.target.value)}
+                                    <div className="flex items-start gap-3 ml-4">
+                                        {/* Approval, Hours, and Comment Controls */}
+                                        <div className="flex flex-col gap-2 bg-white/50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-200 dark:border-slate-600">
+                                            {/* Top row: Approval and Hours */}
+                                            <div className="flex items-center gap-2">
+                                                {/* Approval - Admin only */}
+                                                <div className="flex items-center gap-1">
+                                                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                                        Approval:
+                                                    </label>
+                                                    {isAdmin ? (
+                                                        <select
+                                                            value={participant.tempApproval}
+                                                            onChange={(e) => updateParticipant(participant.userId, 'tempApproval', e.target.value)}
+                                                            disabled={participant.markedForRemoval}
+                                                            className={`px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs focus:ring-1 focus:ring-indigo-400 dark:focus:ring-indigo-500 focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors ${participant.markedForRemoval ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-400 dark:hover:border-slate-500'}`}
+                                                        >
+                                                            <option value="NOT_MARKED">Not Marked</option>
+                                                            <option value="APPROVED">Approved</option>
+                                                            <option value="DENIED">Denied</option>
+                                                        </select>
+                                                    ) : (
+                                                        <div className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs">
+                                                            {participant.tempApproval === 'APPROVED' ? 'Approved' : 
+                                                             participant.tempApproval === 'DENIED' ? 'Denied' : 'Not Marked'}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Hours */}
+                                                <div className="flex items-center gap-1">
+                                                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                                        Hours:
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="24"
+                                                        step="0.5"
+                                                        value={participant.tempHours}
+                                                        onChange={(e) => updateParticipant(participant.userId, 'tempHours', parseFloat(e.target.value) || 0)}
+                                                        disabled={participant.markedForRemoval}
+                                                        className={`w-12 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs focus:ring-1 focus:ring-indigo-400 dark:focus:ring-indigo-500 focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors text-center font-semibold ${participant.markedForRemoval ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-400 dark:hover:border-slate-500'}`}
+                                                        placeholder="0"
+                                                    />
+                                                </div>
+
+                                                {/* Comment Toggle Button */}
+                                                <button
+                                                    onClick={() => toggleCommentExpansion(participant.userId)}
                                                     disabled={participant.markedForRemoval}
-                                                    className={`px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs focus:ring-1 focus:ring-indigo-400 dark:focus:ring-indigo-500 focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors ${participant.markedForRemoval ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-400 dark:hover:border-slate-500'}`}
+                                                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors dark:text-slate-300 ${participant.markedForRemoval ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                                                    title={shouldShowComment(participant) ? "Hide comment" : "Add comment"}
                                                 >
-                                                    <option value="NOT_MARKED">Not Marked</option>
-                                                    <option value="PRESENT">Present</option>
-                                                    <option value="ABSENT">Absent</option>
-                                                </select>
+                                                    <MessageSquare className="w-3 h-3" />
+                                                    {shouldShowComment(participant) ? (
+                                                        <ChevronUp className="w-3 h-3" />
+                                                    ) : (
+                                                        <ChevronDown className="w-3 h-3" />
+                                                    )}
+                                                </button>
                                             </div>
 
-                                            {/* Hours */}
-                                            <div className="flex items-center gap-1">
-                                                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                                                    Hours:
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="24"
-                                                    step="0.5"
-                                                    value={participant.tempHours}
-                                                    onChange={(e) => updateParticipant(participant.userId, 'tempHours', parseFloat(e.target.value) || 0)}
-                                                    disabled={participant.markedForRemoval}
-                                                    className={`w-12 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs focus:ring-1 focus:ring-indigo-400 dark:focus:ring-indigo-500 focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors text-center font-semibold ${participant.markedForRemoval ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-400 dark:hover:border-slate-500'}`}
-                                                    placeholder="0"
-                                                />
-                                            </div>
+                                            {/* Comment section - only show if there's a comment or it's expanded */}
+                                            {shouldShowComment(participant) && (
+                                                <div className="flex flex-col gap-1 min-w-0">
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                                            Comment:
+                                                        </label>
+                                                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                            {participant.tempComment?.length || 0}/500
+                                                        </span>
+                                                    </div>
+                                                    <textarea
+                                                        value={participant.tempComment}
+                                                        onChange={(e) => updateParticipant(participant.userId, 'tempComment', e.target.value)}
+                                                        disabled={participant.markedForRemoval}
+                                                        placeholder="Add a comment..."
+                                                        maxLength={500}
+                                                        rows={2}
+                                                        className={`w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs focus:ring-1 focus:ring-indigo-400 dark:focus:ring-indigo-500 focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors resize-none ${participant.markedForRemoval ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-400 dark:hover:border-slate-500'}`}
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Remove/Undo button - Admin only */}

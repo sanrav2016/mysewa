@@ -49,7 +49,8 @@ export interface UserEventSignup {
   signupDate: string;
   status: 'CONFIRMED' | 'WAITLIST' | 'WAITLIST_PENDING' | 'CANCELLED';
   hoursEarned?: number;
-  attendance?: 'PRESENT' | 'ABSENT' | 'NOT_MARKED';
+  approval?: 'APPROVED' | 'DENIED' | 'NOT_MARKED';
+  comment?: string;
 }
 
 export interface Notification {
@@ -206,7 +207,7 @@ export interface SignupsAPI {
   create: (signupData: any) => Promise<any>;
   update: (id: string, signupData: any) => Promise<any>;
   delete: (id: string) => Promise<void>;
-  bulkUpdateAttendance: (signups: any[]) => Promise<any>;
+  bulkUpdateApproval: (signups: any[]) => Promise<any>;
   bulkUpdateWithRemovals: (data: { removals: string[], updates: any[] }) => Promise<any>;
   parentBulkUpdate: (sessionId: string, updates: any[]) => Promise<any>;
   getWaitlistPosition: (instanceId: string) => Promise<any>;

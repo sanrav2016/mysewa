@@ -23,16 +23,21 @@ export default function Calendar() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    window.addEventListener('scroll', () => {
-      setStickyControls(window.scrollY > document.getElementById("controls")!.offsetHeight);
-    })
+    const handleScroll = () => {
+      const controlsElement = document.getElementById("controls");
+      if (controlsElement) {
+        const rect = controlsElement.getBoundingClientRect();
+        setStickyControls(rect.top <= 0);
+      }
+    };
 
     const interval = setInterval(() => {
       setLiveDate(new Date());
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [])
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Load events and signups from API
   useEffect(() => {
@@ -58,8 +63,8 @@ export default function Calendar() {
   const categories = Array.from(new Set(events.map(e => e.category)));
 
   // Get user's signups for filtering
-  const userSignups = signups.filter(signup => signup.userId === user?.id);
-  const userEventIds = userSignups.map(signup => signup.eventId);
+  const userSignups = signups.filter(signup => signup.userId === user?.id && signup.status == "CONFIRMED");
+  const userSessionIds = userSignups.map(signup => signup.instanceId);
 
   // Get date ranges based on view type
   const getDateRange = () => {
@@ -100,13 +105,13 @@ export default function Calendar() {
   const rangeEvents = events
     .flatMap(event =>
       event.instances
-        .filter(instance => {
+        .filter((instance: any) => {
           // Only include instances with valid start dates
           if (!instance.startDate) return false;
           const instanceDate = new Date(instance.startDate);
           return instanceDate >= rangeStart && instanceDate <= rangeEnd;
         })
-        .map(instance => ({
+        .map((instance: any) => ({
           ...instance,
           eventTitle: event.title,
           category: event.category,
@@ -119,7 +124,7 @@ export default function Calendar() {
         event.eventTitle.toLowerCase().includes(search.toLowerCase()) ||
         event.category.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = categoryFilter === 'all' || event.category === categoryFilter;
-      const matchesUserFilter = !showUserEventsOnly || userEventIds.includes(event.eventId);
+      const matchesUserFilter = !showUserEventsOnly || userSessionIds.includes(event.id);
       return matchesSearch && matchesCategory && matchesUserFilter;
     });
 
@@ -217,14 +222,20 @@ export default function Calendar() {
                   {dayEvents.slice(0, 1).map(event => (
                     <div
                       key={event.id}
-                      className="text-xs p-1 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 font-medium truncate"
-                      title={`${event.eventTitle} at ${event.location}`}
+                      className={`text-xs p-1 rounded font-medium truncate ${
+                        event.status === 'CANCELLED'
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200'
+                          : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200'
+                      }`}
+                      title={`${event.eventTitle} at ${event.location}${event.status === 'CANCELLED' ? ' (Cancelled)' : ''}`}
                     >
                       <div className="hidden lg:block">
                         {event.startDate ? formatLocalDate(event.startDate, 'h:mm a') + ' - ' : ''}{event.eventTitle}
+                        {event.status === 'CANCELLED' && ' (Cancelled)'}
                       </div>
                       <div className="lg:hidden">
                         {event.eventTitle}
+                        {event.status === 'CANCELLED' && ' (Cancelled)'}
                       </div>
                     </div>
                   ))}
@@ -251,10 +262,10 @@ export default function Calendar() {
             <div className="font-semibold text-slate-600 dark:text-slate-300 text-xs lg:text-sm">
               {format(day, 'EEE')}
             </div>
-            <div className={`text-sm lg:text-lg font-bold mt-1 ${isSameDay(day, new Date())
-              ? 'text-orange-600 dark:text-orange-400'
-              : 'text-slate-800 dark:text-white'
-              }`}>
+                         <div className={`text-sm lg:text-lg font-bold mt-1 ${isSameDay(day, new Date())
+               ? 'text-indigo-600 dark:text-indigo-400'
+               : 'text-slate-800 dark:text-white'
+               }`}>
               {format(day, 'd')}
             </div>
           </div>
@@ -271,8 +282,8 @@ export default function Calendar() {
             <div
               key={day.toISOString()}
               onClick={() => handleDayClick(day)}
-              className={`min-h-[120px] lg:min-h-[160px] p-2 lg:p-3 rounded-lg border-2  transition-colors duration-200 cursor-pointer bg-white dark:bg-slate-700 border-orange-200 dark:border-slate-600 hover:bg-orange-50 dark:hover:bg-slate-600 ${isToday ? 'ring-2 ring-orange-400 dark:ring-orange-500' : ''
-                }`}
+                             className={`min-h-[120px] lg:min-h-[160px] p-2 lg:p-3 rounded-lg border-2  transition-colors duration-200 cursor-pointer bg-white dark:bg-slate-700 border-indigo-200 dark:border-slate-600 hover:bg-indigo-50 dark:hover:bg-slate-600 ${isToday ? 'ring-2 ring-indigo-400 dark:ring-indigo-500' : ''
+                 }`}
             >
               <div className="lg:hidden mb-2">
                 <div className="font-semibold text-slate-800 dark:text-white text-sm">
@@ -281,13 +292,18 @@ export default function Calendar() {
               </div>
 
               <div className="space-y-2">
-                {dayEvents.slice(0, 2).map(event => (
+                                {dayEvents.slice(0, 2).map(event => (
                   <div
                     key={event.id}
-                    className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200"
+                    className={`p-2 rounded-lg ${
+                      event.status === 'CANCELLED'
+                        ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200'
+                        : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200'
+                    }`}
                   >
                     <div className="font-semibold text-xs lg:text-sm truncate">
                       {event.eventTitle}
+                      {event.status === 'CANCELLED' && ' (Cancelled)'}
                     </div>
                     {event.startDate && (
                       <div className="text-xs lg:text-sm">
@@ -317,18 +333,18 @@ export default function Calendar() {
 
     // Sort events by start time
     const sortedEvents = [...dayEvents].sort(
-                  (a, b) => {
-              const aDate = a.startDate ? new Date(a.startDate).getTime() : 0;
-              const bDate = b.startDate ? new Date(b.startDate).getTime() : 0;
-              return aDate - bDate;
-            }
+      (a, b) => {
+        const aDate = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const bDate = b.startDate ? new Date(b.startDate).getTime() : 0;
+        return aDate - bDate;
+      }
     );
 
     // Group events into columns to handle overlaps
     const columns: any[][] = [];
 
     sortedEvents.forEach(event => {
-              const start = event.startDate ? new Date(event.startDate).getTime() : 0;
+      const start = event.startDate ? new Date(event.startDate).getTime() : 0;
       const end = event.endDate ? new Date(event.endDate).getTime() : start;
 
       let placed = false;
@@ -345,23 +361,23 @@ export default function Calendar() {
     });
 
     // Time slots: every hour from 6am to 10pm
-    const hours = Array.from({ length: 17 }, (_, i) => i + 6);
+    const hours = Array.from({ length: 24 }, (_, i) => i);
 
     return (
-      <div className="bg-white dark:bg-slate-700 p-4 rounded-lg border-2  border-orange-200 dark:border-slate-500 overflow-x-auto">
+             <div className="bg-white dark:bg-slate-700 p-4 rounded-lg border-2 border-indigo-200 dark:border-slate-500 overflow-x-auto">
         <h3 className="text-lg lg:text-xl font-bold text-slate-800 dark:text-white mb-3">
           Events for {format(currentDate, 'EEEE, MMMM d, yyyy')}
         </h3>
 
         {dayEvents.length === 0 ? (
-          <p className="text-slate-600 dark:text-slate-300 text-center py-6">
+          <p className="text-slate-600 dark:text-slate-300 text-sm text-center py-12">
             No events found matching your criteria
           </p>
         ) : (
           <div className="relative w-full border-l border-slate-300 dark:border-slate-500 pl-12">
             {
               isSameDay(liveDate, currentDate) && hours.includes(liveDate.getHours()) &&
-              <div className="transition-all absolute h-1  border-t-2 border-slate-300 dark:border-slate-500 w-full left-0" style={{ top: `${(liveDate.getHours() + liveDate.getMinutes() / 60 - 6) * 64 - 1}px` }}>
+              <div className="transition-all absolute h-1  border-t-2 border-slate-300 dark:border-slate-500 w-full left-0" style={{ top: `${(liveDate.getHours() + liveDate.getMinutes() / 60) * 64 - 1}px` }}>
                 <span className="absolute text-xs bottom-full mb-1 right-0 font-bold text-slate-300 dark:text-slate-500">{format(liveDate, 'h:mm a')}</span>
               </div>
             }
@@ -370,8 +386,8 @@ export default function Calendar() {
             {hours.map(hour => (
               <div
                 key={hour}
-                className="h-16 border-b  border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 text-sm absolute left-0 w-full pl-1 pt-1 text-left"
-                style={{ top: `${(hour - 6) * 64}px` }}
+                className="h-16 border-b border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 text-sm absolute left-0 w-full pl-1 pt-1 text-left"
+                style={{ top: `${hour * 64}px` }}
               >
                 {format(new Date(0, 0, 0, hour), 'h a')}
               </div>
@@ -383,7 +399,7 @@ export default function Calendar() {
                 col.map(event => {
                   const start = event.startDate ? new Date(event.startDate) : new Date();
                   const end = event.endDate ? new Date(event.endDate) : start;
-                  const top = ((start.getHours() + start.getMinutes() / 60) - 6) * 64;
+                  const top = ((start.getHours() + start.getMinutes() / 60)) * 64;
                   const height = ((end.getTime() - start.getTime()) / (1000 * 60 * 60)) * 64;
                   const widthPercent = 100 / columns.length;
                   const leftPercent = colIdx * widthPercent;
@@ -399,9 +415,18 @@ export default function Calendar() {
                         width: `${widthPercent}%`
                       }}
                     >
-                      <div className="p-2 rounded-lg bg-indigo-200/40 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 text-sm shadow-md h-full overflow-hidden">
-                        <Link to={`/events/${event.eventId}`} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                      <div className={`p-2 rounded-lg text-sm shadow-md h-full overflow-hidden ${
+                        event.status === 'CANCELLED'
+                          ? 'bg-red-200/40 dark:bg-red-900/30 text-red-800 dark:text-red-200'
+                          : 'bg-indigo-200/40 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200'
+                      }`}>
+                        <Link to={`/sessions/${event.id}`} className={`transition-colors ${
+                          event.status === 'CANCELLED'
+                            ? 'hover:text-red-600 dark:hover:text-red-400'
+                            : 'hover:text-indigo-600 dark:hover:text-indigo-400'
+                        }`}>
                           <span className="font-semibold">{event.eventTitle}</span>
+                          {event.status === 'CANCELLED' && ' (Cancelled)'}
                         </Link>
                         <div className="text-xs">
                           {formatLocalDate(start, 'h:mm a')} - {formatLocalDate(end, 'h:mm a')}
@@ -431,7 +456,8 @@ export default function Calendar() {
       </div>
 
       {/* Controls */}
-      <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 w-full sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
+            <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700/50 sticky top-0 z-50 transition-all ${stickyControls ? "border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6 rounded-xl"}`}>
+
         <div className={stickyControls ? "space-y-3" : "space-y-4"}>
           {/* Date Navigation + View Type */}
           <div className="flex flex-col lg:flex-row justify-between gap-4 items-center">
@@ -481,7 +507,7 @@ export default function Calendar() {
                   placeholder="Search events..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "py-2 text-sm" : "py-3 text-base"}`}
+                  className={`w-full pl-10 pr-4 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white py-2 text-sm`}
                 />
               </div>
             </div>
@@ -491,7 +517,7 @@ export default function Calendar() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className={`border border-orange-300 dark:border-slate-600 rounded-xl bg-white/70 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"}`}
+                className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none text-sm p-2`}
               >
                 <option value="all">All Categories</option>
                 {categories.map((category) => (
@@ -503,7 +529,7 @@ export default function Calendar() {
 
               <button
                 onClick={() => setShowUserEventsOnly(!showUserEventsOnly)}
-                className={`hover:scale-105 transition-all flex items-center gap-2 rounded-xl font-medium border ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"} ${showUserEventsOnly
+                className={`hover:scale-105 transition-all flex items-center gap-2 rounded-lg font-medium border px-4 py-2 text-sm ${showUserEventsOnly
                   ? 'bg-blue-500 text-white border-blue-400'
                   : 'bg-blue-100 dark:bg-slate-700 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-slate-600'
                   }`}

@@ -266,21 +266,21 @@ export default function Profile() {
                     </h3>
                     <div className="flex flex-col md:flex-row items-start gap-0 md:gap-4 md:items-center text-sm text-slate-600 dark:text-slate-300">
                       <EventInstanceDisplay instance={instance!} showTime={false} />
-                      {signup.attendance && (
+                      {signup.approval && (
                         <div className="flex items-center gap-1 ml-2">
-                          {signup.attendance === 'PRESENT' ? (
+                          {signup.approval === 'APPROVED' ? (
                             <>
                               <CheckCircle className="w-3 h-3 text-green-600" />
-                              <span className="text-xs text-green-600 font-medium">Present</span>
+                              <span className="text-xs text-green-600 font-medium">Approved</span>
                             </>
-                          ) : signup.attendance === 'ABSENT' ? (
+                          ) : signup.approval === 'DENIED' ? (
                             <>
                               <XCircle className="w-3 h-3 text-red-600 dark:text-red-400" />
-                              <span className="text-xs text-red-600 dark:text-red-400 font-medium">Absent</span>
+                              <span className="text-xs text-red-600 dark:text-red-400 font-medium">Denied</span>
                             </>
                           ) : (
                             <span className="text-xs text-slate-500 dark:text-slate-400">
-                              {signup.attendance === 'NOT_MARKED' ? 'Not Marked' : signup.attendance}
+                              {signup.approval === 'NOT_MARKED' ? 'Not Marked' : signup.approval}
                             </span>
                           )}
                         </div>

@@ -32,7 +32,8 @@ export default function Activity() {
     const handleScroll = () => {
       const controlsElement = document.getElementById("controls");
       if (controlsElement) {
-        setStickyControls(window.scrollY > controlsElement.offsetHeight);
+        const rect = controlsElement.getBoundingClientRect();
+        setStickyControls(rect.top <= 0);
       }
     };
 
@@ -90,7 +91,8 @@ export default function Activity() {
             sessionLocation: instance?.location || '',
             sessionDescription: instance?.description || '',
             eventTitle: event?.title || 'Unknown Event',
-            eventCategory: event?.category || 'Unknown Category'
+            eventCategory: event?.category || 'Unknown Category',
+            sessionStatus: instance?.status || 'ACTIVE'
           };
         });
 
@@ -218,6 +220,13 @@ export default function Activity() {
   };
 
   const totalHours = sessionHistory.reduce((sum, session) => sum + (session.hoursEarned || 0), 0);
+  const approvedHours = sessionHistory.reduce((sum, session) => {
+    // Only count hours for approved signups
+    if (session.status === 'CONFIRMED' && session.approval === 'APPROVED') {
+      return sum + (session.hoursEarned || 0);
+    }
+    return sum;
+  }, 0);
   const confirmedSessions = sessionHistory.filter(session => session.status === 'CONFIRMED').length;
   const totalSessions = sessionHistory.length;
 
@@ -263,14 +272,14 @@ export default function Activity() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-lg text-white shadow-lg hover:scale-105 transition-all">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
               <Clock className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-blue-100 text-xs font-medium">Recorded Hours</p>
+              <p className="text-blue-100 text-xs font-medium">Total Hours</p>
               <p className="text-2xl font-semibold">{totalHours}</p>
             </div>
           </div>
@@ -279,11 +288,11 @@ export default function Activity() {
         <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-lg text-white shadow-lg hover:scale-105 transition-all">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-white" />
+              <CheckCircle className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-green-100 text-xs font-medium">Sessions Participated</p>
-              <p className="text-2xl font-semibold">{confirmedSessions}</p>
+              <p className="text-green-100 text-xs font-medium">Approved Hours</p>
+              <p className="text-2xl font-semibold">{approvedHours}</p>
             </div>
           </div>
         </div>
@@ -291,10 +300,22 @@ export default function Activity() {
         <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-lg text-white shadow-lg hover:scale-105 transition-all">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-purple-100 text-xs font-medium">Sessions Participated</p>
+              <p className="text-2xl font-semibold">{confirmedSessions}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-4 rounded-lg text-white shadow-lg hover:scale-105 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
               <Users2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-purple-100 text-xs font-medium">Total Sessions</p>
+              <p className="text-orange-100 text-xs font-medium">Total Sessions</p>
               <p className="text-2xl font-semibold">{totalSessions}</p>
             </div>
           </div>
@@ -302,7 +323,8 @@ export default function Activity() {
       </div>
 
       {/* Search */}
-      <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 sticky w-full top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
+      <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700/50 sticky top-0 z-50 transition-all ${stickyControls ? "border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6 rounded-xl"}`}>
+
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
           <input
@@ -310,7 +332,7 @@ export default function Activity() {
             placeholder="Search sessions..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className={`w-full pl-10 pr-4 border border-orange-200 dark:border-slate-600 rounded-lg focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white py-2 text-sm`}
+            className={`w-full pl-10 pr-4 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white py-2 text-sm`}
           />
         </div>
       </div>
@@ -321,7 +343,7 @@ export default function Activity() {
           <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
             {filteredSessions.length} result{filteredSessions.length === 1 ? '' : 's'} found
           </h2>
-          
+
           {/* Status Filter */}
           <div className="flex flex-wrap gap-2">
             {(['all', 'confirmed', 'waitlist', 'waitlist_pending', 'cancelled'] as const).map((status) => (
@@ -405,7 +427,7 @@ export default function Activity() {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                   {displayedSessions.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center p-16 pb-12 text-sm text-slate-500">
+                      <td colSpan={7} className="text-center p-16 pb-12 text-sm text-slate-500">
                         No sessions found matching your criteria
                       </td>
                     </tr>
@@ -438,6 +460,15 @@ export default function Activity() {
                                 {session.sessionLocation}
                               </div>
                             )}
+                            {session.sessionStatus && session.sessionStatus !== 'ACTIVE' && (
+                              <span className={`px-2 py-1 rounded text-xs font-medium capitalize ${session.sessionStatus === 'CANCELLED' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' :
+                                session.sessionStatus === 'COMPLETED' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' :
+                                  session.sessionStatus === 'POSTPONED' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' :
+                                    'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                }`}>
+                                {session.sessionStatus.toLowerCase()}
+                              </span>
+                            )}
                           </td>
                         </Link>
                         <td className="py-3 px-2 sm:px-4">
@@ -447,41 +478,50 @@ export default function Activity() {
                                 {session.hoursEarned || 0}
                               </span>
                             </div>
-                            {/* Show attendance */}
+                            {/* Show approval status */}
                             <div>
-                              {session.attendance ? (
+                              {session.approval ? (
                                 <div className="flex items-center gap-1">
-                                  {session.attendance === 'PRESENT' ? (
+                                  {session.approval === 'APPROVED' ? (
                                     <>
                                       <CheckCircle className="w-3 h-3 text-green-600" />
-                                      <span className="text-xs text-green-600 font-medium">Present</span>
+                                      <span className="text-xs text-green-600 font-medium">Approved</span>
                                     </>
-                                  ) : session.attendance === 'ABSENT' ? (
+                                  ) : session.approval === 'DENIED' ? (
                                     <>
                                       <XCircle className="w-3 h-3 text-red-600 dark:text-red-400" />
-                                      <span className="text-xs text-red-600 dark:text-red-400 font-medium">Absent</span>
+                                      <span className="text-xs text-red-600 dark:text-red-400 font-medium">Denied</span>
                                     </>
                                   ) : (
                                     <span className="text-xs text-slate-500 dark:text-slate-400">
-                                      {session.attendance === 'NOT_MARKED' ? '' : session.attendance}
+                                      {session.approval === 'NOT_MARKED' ? '' : session.approval}
                                     </span>
                                   )}
                                 </div>
                               ) : (
                                 <span className="text-xs text-slate-400 dark:text-slate-500">-</span>
                               )}
+                              <div className="max-w-xs">
+                                {session.comment && (
+                                  <div className="text-xs italic text-slate-700 dark:text-slate-300">
+                                    {session.comment}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>
                         <td className="py-3 px-2 sm:px-4">
-                          <span className={`px-2 py-1 rounded text-xs font-medium capitalize ${session.status === 'CONFIRMED' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' :
-                            session.status === 'WAITLIST' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' :
-                              session.status === 'WAITLIST_PENDING' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200' :
-                                session.status === 'CANCELLED' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' :
-                                  'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                            }`}>
-                            {session.status === 'WAITLIST_PENDING' ? 'pending response' : session.status.toLowerCase()}
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className={`px-2 py-1 rounded text-xs font-medium capitalize ${session.status === 'CONFIRMED' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' :
+                              session.status === 'WAITLIST' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' :
+                                session.status === 'WAITLIST_PENDING' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200' :
+                                  session.status === 'CANCELLED' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' :
+                                    'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                              }`}>
+                              {session.status === 'WAITLIST_PENDING' ? 'pending response' : session.status.toLowerCase()}
+                            </span>
+                          </div>
                         </td>
                         <td className="py-3 px-2 sm:px-4 text-sm text-slate-600 dark:text-slate-300 hidden md:table-cell">
                           <div className="flex flex-col gap-1">

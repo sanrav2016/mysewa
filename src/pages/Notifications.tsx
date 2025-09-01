@@ -22,19 +22,30 @@ export default function Notifications() {
   const [totalCount, setTotalCount] = useState(0);
 
   const [stickyControls, setStickyControls] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const loadingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
       const controlsElement = document.getElementById("controls");
       if (controlsElement) {
-        setStickyControls(window.scrollY > controlsElement.offsetHeight);
+        const rect = controlsElement.getBoundingClientRect();
+        setStickyControls(rect.top <= 0);
       }
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Debounce search to prevent too many API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // Load initial notifications
   useEffect(() => {
@@ -45,7 +56,8 @@ export default function Notifications() {
           const response = await notificationsAPI.getAll({
             page: 1,
             limit: 10,
-            ...(filter === 'unread' && { unreadOnly: 'true' })
+            ...(filter === 'unread' && { unreadOnly: 'true' }),
+            ...(debouncedSearch && { search: debouncedSearch })
           });
 
           setServerNotifications(response.notifications || []);
@@ -62,7 +74,7 @@ export default function Notifications() {
     };
 
     loadInitialNotifications();
-  }, [user, filter]);
+  }, [user, filter, debouncedSearch]);
 
   // Infinite scroll logic
   useEffect(() => {
@@ -109,7 +121,8 @@ export default function Notifications() {
       const response = await notificationsAPI.getAll({
         page: nextPage,
         limit: 10,
-        ...(filter === 'unread' && { unreadOnly: 'true' })
+        ...(filter === 'unread' && { unreadOnly: 'true' }),
+        ...(debouncedSearch && { search: debouncedSearch })
       });
 
       const newNotifications = response.notifications || [];
@@ -161,15 +174,12 @@ export default function Notifications() {
     timestamp: formatDistanceToNow(new Date(notification.date), { addSuffix: true }),
     isRead: notification.isRead,
     sessionId: notification.sessionId,
-    session: notification.session
+    session: notification.session,
+    event: notification.event
   }));
 
-  const filteredActivities = recentActivities.filter(activity => {
-    const matchesSearch = search === '' ||
-      activity.title.toLowerCase().includes(search.toLowerCase()) ||
-      activity.message.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
-  });
+  // No need for frontend filtering since we're using backend search
+  const filteredActivities = recentActivities;
 
   const handleMarkAllAsRead = async () => {
     try {
@@ -178,14 +188,15 @@ export default function Notifications() {
       const response = await notificationsAPI.getAll({
         page: 1,
         limit: 10,
-        ...(filter === 'unread' && { unreadOnly: 'true' })
+        ...(filter === 'unread' && { unreadOnly: 'true' }),
+        ...(debouncedSearch && { search: debouncedSearch })
       });
       setServerNotifications(response.notifications || []);
       setCurrentPage(1);
       setTotalPages(response.pagination?.pages || 1);
       setTotalCount(response.pagination?.total || 0);
       setHasMore(response.pagination?.page < response.pagination?.pages);
-      
+
       // Trigger notification context update to refresh sidebar count
       loadNotifications();
     } catch (error) {
@@ -254,7 +265,8 @@ export default function Notifications() {
       </div>
 
       {/* Filters */}
-      <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 sticky w-full top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
+            <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700/50 sticky top-0 z-50 transition-all ${stickyControls ? "border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6 rounded-xl"}`}>
+
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -264,16 +276,16 @@ export default function Notifications() {
                 placeholder="Search notifications..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={`w-full pl-10 pr-4 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white ${stickyControls ? "py-2 text-sm" : "py-2 text-sm"}`}
+                className={`w-full pl-10 pr-4 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white py-2 text-sm`}
               />
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-4">
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as 'all' | 'unread')}
-              className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white px-3 py-2 text-sm`}
+              className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white p-2 text-sm`}
             >
               <option value="all">All</option>
               <option value="unread">Unread</option>
@@ -318,7 +330,7 @@ export default function Notifications() {
                       <h3 className="font-semibold text-slate-800 dark:text-white text-base">
                         {activity.title}
                       </h3>
-                                              <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap ml-4" title={formatLocalDate(activity.date, 'MMM d, yyyy h:mm a')}>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap ml-4" title={formatLocalDate(activity.date, 'MMM d, yyyy h:mm a')}>
                         {activity.timestamp}
                       </span>
                     </div>
@@ -334,6 +346,18 @@ export default function Notifications() {
                         >
                           <Calendar className="w-3 h-3" />
                           View Session Details
+                        </Link>
+                      </div>
+                    )}
+                    {activity.event && !activity.session && (
+                      <div className="mt-2">
+                        <Link
+                          to={`/events/${activity.event.id}`}
+                          className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Calendar className="w-3 h-3" />
+                          View Event Details
                         </Link>
                       </div>
                     )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Trash, Repeat, FileText, Copy, Archive, Calendar, MapPin, Users, Clock, Edit, ChevronDown, Ruler as Schedule, Eye, CalendarOff, Power, PowerOff } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Trash, Repeat, FileText, Copy, Archive, Calendar, MapPin, Users, Clock, Edit, ChevronDown, Ruler as Schedule, Eye, CalendarOff, Power, PowerOff, XCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
@@ -23,6 +23,8 @@ interface EventInstance {
     description?: string;
     enabled?: boolean;
     waitlistEnabled?: boolean;
+    status?: 'ACTIVE' | 'CANCELLED' | 'COMPLETED' | 'POSTPONED';
+    cancelledAt?: string;
     restrictions?: {
         prerequisiteEvents?: any[];
         minAge?: number;
@@ -108,14 +110,17 @@ export default function EditEvent() {
     const [showPublishMenu, setShowPublishMenu] = useState(false);
 
     useEffect(() => {
-        window.addEventListener('scroll', () => {
-            setStickyControls(window.scrollY > document.getElementById("controls")!.offsetHeight);
-        })
-
-        window.addEventListener('click', () => {
-            setShowPublishMenu(false);
-        })
-    }, [])
+        const handleScroll = () => {
+          const controlsElement = document.getElementById("controls");
+          if (controlsElement) {
+            const rect = controlsElement.getBoundingClientRect();
+            setStickyControls(rect.top <= 0);
+          }
+        };
+    
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+      }, []);
 
     const isEditing = !!eventId;
     const isEditingSession = !!sessionId;
@@ -150,6 +155,8 @@ export default function EditEvent() {
     const [showScheduleModal, setShowScheduleModal] = useState(false);
     const [showSessionDeleteModal, setShowSessionDeleteModal] = useState(false);
     const [sessionToDelete, setSessionToDelete] = useState<number | null>(null);
+    const [showCancelSessionModal, setShowCancelSessionModal] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
     const [scheduleDateTime, setScheduleDateTime] = useState('');
     const [sessionEventId, setSessionEventId] = useState<string>('');
     const [bulkOptions, setBulkOptions] = useState<BulkCreateOptions>({
@@ -223,8 +230,8 @@ export default function EditEvent() {
                         setInstances(event.instances.map((instance: any) => (
                             {
                                 id: instance.id, // Preserve the instance ID
-                                startDate: instance.startDate ? instance.startDate.slice(0, 16) : undefined, // Format for datetime-local or undefined if no date
-                                endDate: instance.endDate ? instance.endDate.slice(0, 16) : undefined,
+                                startDate: instance.startDate ? formatForDateTimeLocal(instance.startDate) : undefined, // Convert UTC to local time for datetime-local input
+                                endDate: instance.endDate ? formatForDateTimeLocal(instance.endDate) : undefined,
                                 location: instance.location,
                                 hours: instance.hours,
                                 studentCapacity: instance.studentCapacity,
@@ -232,6 +239,8 @@ export default function EditEvent() {
                                 description: instance.description,
                                 enabled: instance.enabled !== undefined ? instance.enabled : true,
                                 waitlistEnabled: instance.waitlistEnabled !== undefined ? instance.waitlistEnabled : true,
+                                status: instance.status || 'ACTIVE',
+                                cancelledAt: instance.cancelledAt,
                                 restrictions: instance.restrictions || {}
                             }
                         )));
@@ -270,15 +279,17 @@ export default function EditEvent() {
                             });
                             setInstances([{
                                 id: sessionData.id, // Preserve the instance ID
-                                startDate: sessionData.startDate ? sessionData.startDate.slice(0, 16) : undefined,
-                                endDate: sessionData.endDate ? sessionData.endDate.slice(0, 16) : undefined,
+                                startDate: sessionData.startDate ? formatForDateTimeLocal(sessionData.startDate) : undefined,
+                                endDate: sessionData.endDate ? formatForDateTimeLocal(sessionData.endDate) : undefined,
                                 location: sessionData.location,
                                 hours: sessionData.hours || 0,
                                 studentCapacity: sessionData.studentCapacity,
                                 parentCapacity: sessionData.parentCapacity,
                                 description: sessionData.description || '',
                                 enabled: sessionData.enabled !== undefined ? sessionData.enabled : true,
-                                waitlistEnabled: sessionData.waitlistEnabled !== undefined ? sessionData.waitlistEnabled : true
+                                waitlistEnabled: sessionData.waitlistEnabled !== undefined ? sessionData.waitlistEnabled : true,
+                                status: sessionData.status || 'ACTIVE',
+                                cancelledAt: sessionData.cancelledAt
                             }]);
                         }
                     }
@@ -406,6 +417,33 @@ export default function EditEvent() {
         }
     };
 
+    const handleCancelSession = async () => {
+        if (!sessionId) return;
+        
+        try {
+            setLoading(true);
+            await eventsAPI.updateSessionStatus(sessionId, { status: 'CANCELLED', reason: cancelReason });
+            addNotification(
+                'success',
+                'Session cancelled!',
+                'The session has been cancelled successfully. All signed-up participants have been notified.'
+            );
+            navigate(`/sessions/${sessionId}`);
+        } catch (error: any) {
+            console.error('Failed to cancel session:', error);
+            addNotification(
+                'error',
+                'Failed to cancel session',
+                error.response?.data?.message || 'An error occurred while cancelling the session.',
+                false
+            );
+        } finally {
+            setLoading(false);
+            setShowCancelSessionModal(false);
+            setCancelReason('');
+        }
+    };
+
     const updateInstance = (index: number, field: keyof EventInstance, value: string | number | any) => {
         const updated = instances.map((instance, i) =>
             i === index ? { ...instance, [field]: value } : instance
@@ -437,6 +475,9 @@ export default function EditEvent() {
 
         try {
             setLoading(true);
+            
+            // Store the original status before updating
+            const originalStatus = eventData.status;
             const updatedEvent = { ...eventData, status: 'PUBLISHED' as any };
             setEventData(updatedEvent);
 
@@ -483,10 +524,16 @@ export default function EditEvent() {
                 navigate(`/sessions/${sessionId}`);
             } else if (isEditing) {
                 await eventsAPI.update(eventId!, eventPayload);
-                addNotification('success', 'Event Published', 'Your event has been published successfully!');
+                // Check if this is actually a publish (status change from DRAFT to PUBLISHED) or just an update
+                const isActualPublish = originalStatus !== 'PUBLISHED';
+                if (isActualPublish) {
+                    addNotification('success', 'Event Published', `"${eventData.title}" has been published successfully!`);
+                } else {
+                    addNotification('success', 'Event Updated', `"${eventData.title}" has been updated successfully!`);
+                }
             } else {
                 const response = await eventsAPI.create(eventPayload);
-                addNotification('success', 'Event Published', 'Your event has been published successfully!');
+                addNotification('success', 'Event Published', `"${eventData.title}" has been published successfully!`);
                 // Navigate to the created event
                 navigate(`/events/${response.event.id}`);
             }
@@ -575,10 +622,10 @@ export default function EditEvent() {
                     status: 'SCHEDULED',
                     scheduledPublishDate: scheduledDateTime.toISOString()
                 }));
-                addNotification('success', 'Event Scheduled', `Your event will be published on ${formatLocalDate(scheduledDateTime, 'MMM d, yyyy')} at ${formatLocalDate(scheduledDateTime, 'h:mm a')}`);
+                addNotification('success', 'Event Scheduled', `"${eventData.title}" will be published on ${formatLocalDate(scheduledDateTime, 'MMM d, yyyy')} at ${formatLocalDate(scheduledDateTime, 'h:mm a')}`);
             } else {
                 const response = await eventsAPI.create(eventPayload);
-                addNotification('success', 'Event Scheduled', `Your event will be published on ${formatLocalDate(scheduledDateTime, 'MMM d, yyyy')} at ${formatLocalDate(scheduledDateTime, 'h:mm a')}`);
+                addNotification('success', 'Event Scheduled', `"${eventData.title}" will be published on ${formatLocalDate(scheduledDateTime, 'MMM d, yyyy')} at ${formatLocalDate(scheduledDateTime, 'h:mm a')}`);
                 // Navigate to the created event
                 navigate(`/events/${response.event.id}`);
             }
@@ -1075,6 +1122,25 @@ export default function EditEvent() {
                                         <span className="hidden sm:inline">Delete Session</span>
                                     </button>
                                 )}
+
+                                {/* Cancel Session Button - Only show when editing a session that is not already cancelled */}
+                                {isEditingSession && instances[0]?.status !== 'CANCELLED' && (
+                                    <button
+                                        onClick={() => { setShowCancelSessionModal(true) }}
+                                        className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-4 py-2 rounded-xl font-medium transition-all duration-200 hover:scale-105 border border-orange-400 shadow-lg"
+                                    >
+                                        <XCircle className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Cancel Session</span>
+                                    </button>
+                                )}
+
+                                {/* Session Status Indicator - Show when editing a cancelled session */}
+                                {isEditingSession && instances[0]?.status === 'CANCELLED' && (
+                                    <div className="flex items-center gap-2 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 px-4 py-2 rounded-xl border border-red-200 dark:border-red-700/50">
+                                        <XCircle className="w-4 h-4" />
+                                        <span className="font-medium">Session Cancelled</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1462,6 +1528,66 @@ export default function EditEvent() {
                 confirmColor="bg-red-500 hover:bg-red-600 border-red-400"
                 isLoading={loading}
             />
+
+            {/* Cancel Session Modal */}
+            <div
+                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[150] p-4 transition-opacity duration-300 ${showCancelSessionModal ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                    }`}
+            >
+                <div
+                    className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-4 rounded-xl max-w-md w-full max-h-full overflow-y-auto border border-slate-200 dark:border-slate-700/50 transform transition-all ${showCancelSessionModal ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
+                        }`}
+                >
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">
+                        Confirm Session Cancellation
+                    </h3>
+                    <div className="space-y-4">
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            Are you sure you want to cancel this session? This action cannot be undone.
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                            Cancelling this session will notify all signed-up participants and remove any waitlist positions.
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                            Please provide a reason for cancellation:
+                        </p>
+                        <textarea
+                            value={cancelReason}
+                            onChange={(e) => setCancelReason(e.target.value)}
+                            placeholder="Enter cancellation reason..."
+                            className="w-full px-4 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white resize-none"
+                            rows={3}
+                            required
+                        />
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                        <button
+                            onClick={() => {
+                                setShowCancelSessionModal(false);
+                                setCancelReason('');
+                            }}
+                            disabled={loading}
+                            className={`flex-1 px-3 py-2 text-sm bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleCancelSession}
+                            disabled={loading || !cancelReason}
+                            className={`flex-1 px-3 py-2 text-sm text-white rounded-lg font-medium transition-all hover:scale-105 bg-red-500 hover:bg-red-600 border-red-400 ${loading || !cancelReason ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            {loading ? (
+                                <div className="flex items-center justify-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    Cancelling...
+                                </div>
+                            ) : (
+                                'Cancel Session'
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             {/* Schedule Publish Modal */}
             <div

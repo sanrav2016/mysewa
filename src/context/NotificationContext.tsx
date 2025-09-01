@@ -14,7 +14,7 @@ export interface Notification {
 interface NotificationContextType {
   notifications: Notification[];
   serverNotifications: any[];
-  addNotification: (type: Notification['type'], title: string, message: string, saveToServer?: boolean) => void;
+  addNotification: (type: Notification['type'], title: string, message: string, saveToServer?: boolean, sessionId?: string) => void;
   removeNotification: (id: string) => void;
   clearAll: () => void;
   markAsRead: (id: string) => void;
@@ -48,7 +48,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, []);
 
-  const addNotification = useCallback(async (type: Notification['type'], title: string, message: string, saveToServer = true) => {
+  const addNotification = useCallback(async (type: Notification['type'], title: string, message: string, saveToServer = true, sessionId?: string) => {
     // Check if a notification with the same title and message already exists
     const existingNotification = notifications.find(n => n.title === title && n.message === message);
     if (existingNotification) {
@@ -78,7 +78,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           description: message,
           type: type.toUpperCase(),
           userId: user.id,
-          isRead: true
+          isRead: true,
+          sessionId
         });
         // Reload notifications from server
         loadNotifications();

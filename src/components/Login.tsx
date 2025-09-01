@@ -18,7 +18,7 @@ export default function Login() {
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const redirectParam = urlParams.get('redirect');
-    if (redirectParam && redirectParam !== '/login') {
+    if (redirectParam) {
       setRedirectTo(redirectParam);
     }
   }, [location.search]);
@@ -28,7 +28,7 @@ export default function Login() {
     if (user && redirectTo && loginSuccess) {
       navigate(redirectTo, { replace: true });
     }
-  }, [user, redirectTo, navigate, loginSuccess]);
+  }, [user, redirectTo, loginSuccess]);
 
   // Redirect if already logged in (but no specific redirect destination)
   if (user && !redirectTo) {
@@ -41,6 +41,7 @@ export default function Login() {
     setLoginSuccess(false);
     
     const success = await login(email, password);
+    console.log('Login success:', success);
     if (success) {
       setLoginSuccess(true);
     } else {
@@ -103,10 +104,10 @@ export default function Login() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              <div className="mt-2 text-right">
+              <div className="mt-1 text-right">
                 <Link
                   to="/forgot-password"
-                  className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
                 >
                   Forgot Password?
                 </Link>
@@ -114,7 +115,7 @@ export default function Login() {
             </div>
 
             {error && (
-              <div className="bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-2 rounded-lg text-sm">
+              <div className="bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-2 rounded-lg text-xs">
                 {error}
               </div>
             )}

@@ -22,7 +22,8 @@ export default function Chapter() {
     const handleScroll = () => {
       const controlsElement = document.getElementById("controls");
       if (controlsElement) {
-        setStickyControls(window.scrollY > controlsElement.offsetHeight);
+        const rect = controlsElement.getBoundingClientRect();
+        setStickyControls(rect.top <= 0);
       }
 
       // Infinite scroll detection
@@ -154,7 +155,8 @@ export default function Chapter() {
       </div>
 
       {/* Filters */}
-      <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
+            <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700/50 sticky top-0 z-50 transition-all ${stickyControls ? "border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6 rounded-xl"}`}>
+
         <div className="flex flex-col gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -186,7 +188,7 @@ export default function Chapter() {
             <select
               value={chapterFilter}
               onChange={(e) => setChapterFilter(e.target.value)}
-              className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"}`}
+              className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm p-2`}
             >
               <option value="all">All Chapters</option>
               {chapters.map(chapter => (
@@ -197,7 +199,7 @@ export default function Chapter() {
             <select
               value={cityFilter}
               onChange={(e) => setCityFilter(e.target.value)}
-              className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-2"}`}
+              className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white text-sm p-2`}
             >
               <option value="all">All Cities</option>
               {cities.map(city => (
@@ -214,13 +216,13 @@ export default function Chapter() {
           <LoadingSpinner size="lg" />
         </div>
       ) : filteredMembers.length === 0 ? (
-        <div className="col-span-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-12 rounded-xl shadow-lg text-center border border-slate-200 dark:border-slate-700/50">
-          <p className="text-slate-600 dark:text-slate-300 text-lg">
+        <div className="col-span-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-16 rounded-xl shadow-lg text-center border border-slate-200 dark:border-slate-700/50">
+          <p className="text-slate-600 dark:text-slate-300 text-sm">
             No members found matching your criteria
           </p>
         </div>
       ) : (
-        <div className="columns-1 sm:columns-2 md:columns-3 gap-6"> 
+        <div className="columns-1 sm:columns-2 md:columns-3 gap-6">
           {displayedMembers.map((member, i) => {
             const memberSignups = signups.filter(s => s.userId === member.id);
             const completedEvents = memberSignups.filter(s => s.status === 'CONFIRMED').length;
@@ -263,7 +265,7 @@ export default function Chapter() {
                     )}
                     <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-sm">
                       <Calendar className="w-4 h-4" />
-                                                  Joined {formatLocalDate(member.createdAt, 'MMM yyyy')}
+                      Joined {formatLocalDate(member.createdAt, 'MMM yyyy')}
                     </div>
                   </div>
 

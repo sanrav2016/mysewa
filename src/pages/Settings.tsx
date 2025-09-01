@@ -37,6 +37,12 @@ export default function Settings() {
     weeklyDigest: false
   });
 
+  // Loading states
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
+
   // Load chapters and cities from users data
   useEffect(() => {
     const loadData = async () => {
@@ -103,30 +109,35 @@ export default function Settings() {
       return;
     }
 
+    setIsChangingPassword(true);
     try {
       await authAPI.changePassword(passwordData.currentPassword, passwordData.newPassword);
       addNotification('success', 'Password Changed', 'Your password has been changed successfully!');
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error: any) {
       console.error('Failed to change password:', error);
-      addNotification('error', 'Password Change Failed', error.response?.data?.message || 'Failed to change password', false);
+      addNotification('error', 'Password Change Failed', error.toString() || 'Failed to change password', false);
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
   const handleSaveNotifications = async () => {
+    setIsSavingPreferences(true);
     try {
       await preferencesAPI.update(notifications);
       addNotification('success', 'Preferences Updated', 'Your notification preferences have been updated!');
     } catch (error: any) {
       console.error('Failed to update notifications:', error);
       addNotification('error', 'Update Failed', error.response?.data?.message || 'Failed to update notification preferences', false);
+    } finally {
+      setIsSavingPreferences(false);
     }
   };
 
   const handleRequestExport = async () => {
+    setIsExporting(true);
     try {
-      addNotification('info', 'Preparing Export', 'Generating Excel file...', false);
-
       const blob = await dashboardAPI.exportChapterData();
 
       // Create download link
@@ -143,13 +154,14 @@ export default function Settings() {
     } catch (error: any) {
       console.error('Export failed:', error);
       addNotification('error', 'Export Failed', 'Failed to export chapter data. Please try again.', false);
+    } finally {
+      setIsExporting(false);
     }
   };
 
   const handleViewCertificate = async () => {
+    setIsGeneratingCertificate(true);
     try {
-      addNotification('info', 'Generating Certificate', 'Creating your volunteer certificate...', false);
-
       const blob = await dashboardAPI.generateCertificate();
 
       // Create download link
@@ -166,6 +178,8 @@ export default function Settings() {
     } catch (error: any) {
       console.error('Certificate generation failed:', error);
       addNotification('error', 'Certificate Failed', error.toString() || 'Failed to generate certificate. Please try again.', false);
+    } finally {
+      setIsGeneratingCertificate(false);
     }
   };
 
@@ -192,7 +206,7 @@ export default function Settings() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:scale-105 text-sm ${activeTab === tab.id
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:scale-102 text-sm ${activeTab === tab.id
                       ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-sm'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'
                       }`}
@@ -214,9 +228,10 @@ export default function Settings() {
                 <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
                   Profile Information
                 </h2>
+                {user?.role !== "ADMIN" && 
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                   Profile information is managed by your organization. Please contact your administrator to update your details.
-                </p>
+                </p>}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -340,10 +355,23 @@ export default function Settings() {
 
                 <button
                   onClick={handleChangePassword}
-                  className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-lg font-medium hover:shadow-md transition-all hover:scale-105 text-sm"
+                  disabled={isChangingPassword}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all text-sm ${isChangingPassword
+                      ? 'bg-slate-400 text-white cursor-not-allowed'
+                      : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:shadow-md hover:scale-105'
+                    }`}
                 >
-                  <Lock className="w-4 h-4" />
-                  Change Password
+                  {isChangingPassword ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Changing Password...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      Change Password
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -384,10 +412,23 @@ export default function Settings() {
 
                 <button
                   onClick={handleSaveNotifications}
-                  className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-lg font-medium hover:shadow-md transition-all hover:scale-105 text-sm"
+                  disabled={isSavingPreferences}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all text-sm ${isSavingPreferences
+                      ? 'bg-slate-400 text-white cursor-not-allowed'
+                      : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:shadow-md hover:scale-105'
+                    }`}
                 >
-                  <Save className="w-4 h-4" />
-                  Save Preferences
+                  {isSavingPreferences ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Save Preferences
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -411,9 +452,17 @@ export default function Settings() {
                       </div>
                       <button
                         onClick={handleRequestExport}
-                        className="flex items-center gap-2 bg-gradient-to-r from-blue-400 to-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-200 hover:scale-105 hover:rotate-1 border-2  border-blue-300"
+                        disabled={isExporting}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 border-2 ${isExporting
+                            ? 'bg-slate-400 text-white cursor-not-allowed border-slate-300'
+                            : 'bg-gradient-to-r from-blue-400 to-blue-600 text-white hover:shadow-lg hover:scale-105 hover:rotate-1 border-blue-300'
+                          }`}
                       >
-                        <Download className="w-4 h-4" />
+                        {isExporting ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   }
@@ -430,9 +479,17 @@ export default function Settings() {
                       </div>
                       <button
                         onClick={handleViewCertificate}
-                        className="flex items-center gap-2 bg-gradient-to-r from-emerald-400 to-green-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-200 hover:scale-105 hover:rotate-1 border-2  border-blue-300"
+                        disabled={isGeneratingCertificate}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 border-2 ${isGeneratingCertificate
+                            ? 'bg-slate-400 text-white cursor-not-allowed border-slate-300'
+                            : 'bg-gradient-to-r from-emerald-400 to-green-600 text-white hover:shadow-lg hover:scale-105 hover:rotate-1 border-blue-300'
+                          }`}
                       >
-                        <Download className="w-4 h-4" />
+                        {isGeneratingCertificate ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   }
@@ -458,7 +515,7 @@ export default function Settings() {
                     </div>
                     <button
                       onClick={toggleTheme}
-                      className={`flex items-center gap-3 px-6 py-3 rounded-xl font-medium transition-all duration-200 border-2  hover:rotate-2 hover:scale-105 ${isDark
+                      className={`flex items-center gap-3 px-6 py-3 rounded-xl font-medium transition-all duration-200 border-2 hover:rotate-2 hover:scale-105 ${isDark
                         ? 'bg-slate-800 text-white hover:bg-slate-700 border-slate-600'
                         : 'bg-white text-slate-800 hover:bg-slate-50 shadow-lg border-slate-200'
                         }`}

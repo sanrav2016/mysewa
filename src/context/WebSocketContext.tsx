@@ -83,6 +83,32 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // Listen for session cancellation events
+    socket.on('session-cancelled', (data) => {
+      console.log('🚫 Session cancelled:', data);
+      
+      // Display a notification about the session cancellation
+      addNotification(
+        'warning',
+        'Session Cancelled',
+        'A session you were signed up for has been cancelled by an administrator.',
+        false
+      );
+    });
+
+    // Listen for session completion events
+    socket.on('session-completed', (data) => {
+      console.log('✅ Session completed:', data);
+      
+      // Display a notification about the session completion
+      addNotification(
+        'info',
+        'Session Completed',
+        'A session you were signed up for has been marked as completed.',
+        false
+      );
+    });
+
     socketRef.current = socket;
 
     return () => {

@@ -17,20 +17,16 @@ export interface EventInstance {
   startDate: string;
   endDate: string;
   location: string;
-  studentCapacity: number;
-  parentCapacity: number;
-  studentSignups: string[]; // user IDs
-  parentSignups: string[]; // user IDs
+  hours: number;
+  capacity: number;
+  waitlistCapacity: number;
   description?: string;
-  enabled?: boolean;
-  waitlistEnabled?: boolean;
-  restrictions?: {
-    prerequisiteEvents?: string[]; // event IDs
-    minAge?: number;
-    maxAge?: number;
-    minHours?: number;
-    maxHours?: number;
-  };
+  enabled: boolean;
+  waitlistEnabled: boolean;
+  status: 'draft' | 'published' | 'cancelled' | 'completed';
+  scheduledPublishDate: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Event {
@@ -43,9 +39,10 @@ export interface Event {
   instances: EventInstance[];
   isRecurring: boolean;
   tags: string[];
-  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | 'SCHEDULED';
   chapters: string[];
   cities: string[];
+  scheduledPublishDate: string | null;
 }
 
 export interface UserEventSignup {
@@ -56,7 +53,8 @@ export interface UserEventSignup {
   signupDate: string;
   status: 'CONFIRMED' | 'WAITLIST' | 'WAITLIST_PENDING' | 'CANCELLED';
   hoursEarned?: number;
-  attendance?: 'PRESENT' | 'ABSENT' | 'NOT_MARKED';
+  approval?: 'APPROVED' | 'DENIED' | 'NOT_MARKED';
+  comment?: string;
 }
 
 export interface Chapter {

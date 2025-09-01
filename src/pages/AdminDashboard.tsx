@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Calendar, Plus, Edit, Trash2, Search, Filter, UserPlus, Building, MapPin, Mail, Phone, ChevronDown, Upload, FileText, Download, SortAsc, SortDesc, History } from 'lucide-react';
+import { Users, Calendar, Plus, Edit, Trash2, Search, Filter, Building, MapPin, Mail, Phone, ChevronDown, Upload, FileText, Download, SortAsc, SortDesc, History } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
 import { usersAPI, eventsAPI } from '../services/api';
 import { formatLocalDate } from '../utils/dateUtils';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function AdminDashboard() {
   const { addNotification } = useNotification();
@@ -14,6 +15,8 @@ export default function AdminDashboard() {
   const [chapters, setChapters] = useState<string[]>([]);
   const [cities, setCities] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [eventsLoading, setEventsLoading] = useState(false);
 
   // User filters and sorting
   const [userSearch, setUserSearch] = useState('');
@@ -24,18 +27,6 @@ export default function AdminDashboard() {
   const [eventSearch, setEventSearch] = useState('');
   const [eventSortBy, setEventSortBy] = useState('title');
   const [eventSortOrder, setEventSortOrder] = useState<'asc' | 'desc'>('asc');
-
-  // Add user dropdown
-  const [showAddUserDropdown, setShowAddUserDropdown] = useState(false);
-  const [addUserMethod, setAddUserMethod] = useState<'manual' | 'csv' | null>(null);
-  const [newUser, setNewUser] = useState({
-    name: '',
-    email: '',
-    role: 'STUDENT' as 'STUDENT' | 'PARENT' | 'ADMIN',
-    phone: '',
-    chapter: '',
-    city: ''
-  });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -73,13 +64,14 @@ export default function AdminDashboard() {
         setCities(uniqueCities);
       } catch (error) {
         console.error('Failed to load admin data:', error);
+        addNotification('error', 'Error', 'Failed to load admin data. Please try again.');
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, []);
+  }, [addNotification]);
 
   // Filter and sort users
   const filteredUsers = users
@@ -145,66 +137,10 @@ export default function AdminDashboard() {
       return eventSortOrder === 'asc' ? comparison : -comparison;
     });
 
-  const handleAddUser = async () => {
-    if (!newUser.name || !newUser.email) {
-      addNotification('error', 'Error', 'Please fill in required fields');
-      return;
-    }
-
-    try {
-      // For now, we'll use the auth register endpoint since there's no direct user creation endpoint
-      // In a real app, you'd have a separate admin endpoint for creating users
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({
-          name: newUser.name,
-          email: newUser.email,
-          password: 'temporary123', // You'd want to generate a random password
-          role: newUser.role,
-          phone: newUser.phone,
-          chapter: newUser.chapter,
-          city: newUser.city
-        })
-      });
-
-      if (response.ok) {
-        addNotification('success', 'Success!', 'User added successfully!', false);
-        setNewUser({
-          name: '',
-          email: '',
-          role: 'STUDENT',
-          phone: '',
-          chapter: '',
-          city: ''
-        });
-        setAddUserMethod(null);
-        setShowAddUserDropdown(false);
-        
-        // Reload users data
-        const [usersData] = await Promise.all([usersAPI.getAll()]);
-        const allUsers = usersData.users || [];
-        setUsers(allUsers);
-      } else {
-        const errorData = await response.json();
-        addNotification('error', 'Error', errorData.message || 'Failed to add user', false);
-      }
-    } catch (error) {
-      console.error('Failed to add user:', error);
-      addNotification('error', 'Error', 'Failed to add user. Please try again.', false);
-    }
-  };
-
-  const handleCSVImport = () => {
-    console.log('CSV import functionality would be implemented here');
-  };
-
   const handleDeleteUser = async (userId: string) => {
     if (confirm('Are you sure you want to delete this user?')) {
       try {
+        setUsersLoading(true);
         await usersAPI.delete(userId);
         addNotification('success', 'Success!', 'User deleted successfully!', false);
         
@@ -215,6 +151,8 @@ export default function AdminDashboard() {
       } catch (error) {
         console.error('Failed to delete user:', error);
         addNotification('error', 'Error', 'Failed to delete user. Please try again.', false);
+      } finally {
+        setUsersLoading(false);
       }
     }
   };
@@ -222,6 +160,7 @@ export default function AdminDashboard() {
   const handleDeleteEvent = async (eventId: string) => {
     if (confirm('Are you sure you want to delete this event?')) {
       try {
+        setEventsLoading(true);
         await eventsAPI.delete(eventId);
         addNotification('success', 'Success!', 'Event deleted successfully!');
         
@@ -232,6 +171,8 @@ export default function AdminDashboard() {
       } catch (error) {
         console.error('Failed to delete event:', error);
         addNotification('error', 'Error', 'Failed to delete event. Please try again.');
+      } finally {
+        setEventsLoading(false);
       }
     }
   };
@@ -255,17 +196,19 @@ export default function AdminDashboard() {
     }
   };
 
-  // Function to gather all input data for server processing
-  const gatherUserData = () => {
-    return {
-      method: addUserMethod,
-      manualData: addUserMethod === 'manual' ? newUser : null,
-      csvData: addUserMethod === 'csv' ? 'CSV file data would be processed here' : null
-    };
-  };
+  // Show loading spinner for initial load
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 p-4 lg:p-8" onClick={() => setShowAddUserDropdown(false)}>
+    <div className="space-y-6 p-4 lg:p-8">
       {/* Header */}
       <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50">
         <h1 className="text-2xl font-semibold text-slate-800 dark:text-white mb-2">
@@ -318,55 +261,6 @@ export default function AdminDashboard() {
                 />
               </div>
             </div>
-
-            {/* Add User Button + Dropdown */}
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowAddUserDropdown(!showAddUserDropdown);
-                }}
-                className={`flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white border-2  border-green-400 rounded-xl font-medium transition-colors whitespace-nowrap ${stickyControls ? "px-4 py-2 text-sm" : "px-6 py-3 text-base"}`}
-              >
-                <UserPlus className="w-5 h-5" />
-                <span className="hidden md:block">Add User</span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
-
-              {/* Dropdown Menu */}
-              {showAddUserDropdown && (
-                <div className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-800 border-2 border-orange-200 dark:border-slate-600 rounded-xl shadow-xl p-4 min-w-64 z-50">
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        setAddUserMethod('manual');
-                        setShowAddUserDropdown(false);
-                      }}
-                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-orange-50 dark:hover:bg-slate-700 transition-colors text-left"
-                    >
-                      <UserPlus className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                      <div>
-                        <div className="font-medium text-slate-800 dark:text-white">Add Manually</div>
-                        <div className="text-sm text-slate-500 dark:text-slate-400">Enter user details one by one</div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setAddUserMethod('csv');
-                        setShowAddUserDropdown(false);
-                      }}
-                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-orange-50 dark:hover:bg-slate-700 transition-colors text-left"
-                    >
-                      <Upload className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                      <div>
-                        <div className="font-medium text-slate-800 dark:text-white">Import from CSV</div>
-                        <div className="text-sm text-slate-500 dark:text-slate-400">Upload a CSV file with user data</div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         )}
 
@@ -405,138 +299,6 @@ export default function AdminDashboard() {
         {/* Users Tab */}
         {activeTab === 'users' && (
           <div className="space-y-6">
-            {/* Add User Forms */}
-            {addUserMethod === 'manual' && (
-              <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-slate-700 dark:to-slate-600 p-4 sm:p-6 rounded-xl border-2  border-green-200 dark:border-slate-500">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">Add New User Manually</h3>
-                  <button
-                    onClick={() => setAddUserMethod(null)}
-                    className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Full Name *"
-                    value={newUser.name}
-                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                    className="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email Address *"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    className="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                  />
-                  <select
-                    value={newUser.role}
-                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value as any })}
-                    className="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                  >
-                    <option value="STUDENT">Student</option>
-                    <option value="PARENT">Parent</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
-                  <input
-                    type="tel"
-                    placeholder="Phone Number"
-                    value={newUser.phone}
-                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                    className="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                  />
-                  <select
-                    value={newUser.chapter}
-                    onChange={(e) => setNewUser({ ...newUser, chapter: e.target.value })}
-                    className="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                  >
-                    <option value="">Select Chapter</option>
-                    {chapters.map(chapter => (
-                      <option key={chapter} value={chapter}>{chapter}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={newUser.city}
-                    onChange={(e) => setNewUser({ ...newUser, city: e.target.value })}
-                    className="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white"
-                  >
-                    <option value="">Select City</option>
-                    {cities.map(city => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={() => setAddUserMethod(null)}
-                    className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors border-2  border-slate-300 dark:border-slate-600"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleAddUser}
-                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors border-2  border-green-400"
-                  >
-                    Add User
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {addUserMethod === 'csv' && (
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-slate-700 dark:to-slate-600 p-4 sm:p-6 rounded-xl border-2  border-blue-200 dark:border-slate-500">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">Import Users from CSV</h3>
-                  <button
-                    onClick={() => setAddUserMethod(null)}
-                    className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border-2  border-blue-200 dark:border-slate-600">
-                    <h4 className="font-medium text-slate-800 dark:text-white mb-2">CSV Import Guidelines</h4>
-                    <div className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
-                      <p><strong>Required columns:</strong> name, email, role, phone, chapter, city</p>
-                      <p><strong>Role values:</strong> student, parent, admin</p>
-                      <p><strong>File format:</strong> CSV with headers in first row</p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <button className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:shadow-md text-white px-3 py-2 rounded-lg font-medium transition-all hover:scale-105 text-sm">
-                      <Upload className="w-4 h-4" />
-                      Choose CSV File
-                    </button>
-                    <a href="#" className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
-                      <Download className="w-4 h-4" />
-                      Download Template
-                    </a>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setAddUserMethod(null)}
-                      className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleCSVImport}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
-                    >
-                      Import Users
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Users Table */}
             <div className="overflow-x-auto">
               <div className="min-w-full inline-block align-middle">
@@ -593,89 +355,105 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-orange-100 dark:divide-slate-700">
-                      {filteredUsers.map((user) => (
-                        <tr key={user.id} className="border-b  border-orange-100 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-700/50">
-                          <td className="py-3 px-2 sm:px-4">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                              <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                {user.name.charAt(0)}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <Link
-                                  to={`/profile/${user.id}`}
-                                  className="font-medium text-slate-800 dark:text-white hover:text-orange-600 dark:hover:text-orange-400 transition-colors block truncate"
-                                >
-                                  {user.name}
-                                </Link>
-                                <p className="text-sm text-slate-600 dark:text-slate-300 truncate">{user.email}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 sm:px-4 hidden sm:table-cell">
-                            <span className={`px-2 py-1 rounded-lg text-xs font-medium capitalize ${user.role === 'ADMIN'
-                                ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                                : user.role === 'PARENT'
-                                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
-                                  : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                              }`}>
-                              {user.role.toLowerCase()}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 sm:px-4 hidden md:table-cell">
-                            <div className="text-sm text-slate-600 dark:text-slate-300">
-                              {user.chapter && (
-                                <div className="flex items-center gap-1 mb-1">
-                                  <Building className="w-3 h-3" />
-                                  {user.chapter}
-                                </div>
-                              )}
-                              {user.city && (
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  {user.city}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 sm:px-4 hidden lg:table-cell">
-                            <div className="text-sm text-slate-600 dark:text-slate-300">
-                              {user.phone && (
-                                <div className="flex items-center gap-1 mb-1">
-                                  <Phone className="w-3 h-3" />
-                                  {user.phone}
-                                </div>
-                              )}
-                              <div className="flex items-center gap-1">
-                                <Mail className="w-3 h-3" />
-                                {user.email}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 sm:px-4">
-                            <span className="font-bold text-blue-600 dark:text-blue-400">
-                              {user.totalHours}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 sm:px-4">
-                            <div className="flex gap-2">
-                              <Link
-                                to={`/activity/${user.id}`}
-                                className="p-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                                title="View History"
-                              >
-                                <History className="w-4 h-4" />
-                              </Link>
-                              <button
-                                onClick={() => handleDeleteUser(user.id)}
-                                className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                title="Delete User"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                      {usersLoading ? (
+                        <tr>
+                          <td colSpan={6} className="py-8">
+                            <div className="flex justify-center">
+                              <LoadingSpinner size="md" />
                             </div>
                           </td>
                         </tr>
-                      ))}
+                      ) : filteredUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-500 dark:text-slate-400">
+                            {userSearch ? 'No users found matching your search.' : 'No users found.'}
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredUsers.map((user) => (
+                          <tr key={user.id} className="border-b  border-orange-100 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-700/50">
+                            <td className="py-3 px-2 sm:px-4">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                  {user.name.charAt(0)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <Link
+                                    to={`/profile/${user.id}`}
+                                    className="font-medium text-slate-800 dark:text-white hover:text-orange-600 dark:hover:text-orange-400 transition-colors block truncate"
+                                  >
+                                    {user.name}
+                                  </Link>
+                                  <p className="text-sm text-slate-600 dark:text-slate-300 truncate">{user.email}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4 hidden sm:table-cell">
+                              <span className={`px-2 py-1 rounded-lg text-xs font-medium capitalize ${user.role === 'ADMIN'
+                                  ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                                  : user.role === 'PARENT'
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
+                                    : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                                }`}>
+                                {user.role.toLowerCase()}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4 hidden md:table-cell">
+                              <div className="text-sm text-slate-600 dark:text-slate-300">
+                                {user.chapter && (
+                                  <div className="flex items-center gap-1 mb-1">
+                                    <Building className="w-3 h-3" />
+                                    {user.chapter}
+                                  </div>
+                                )}
+                                {user.city && (
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    {user.city}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4 hidden lg:table-cell">
+                              <div className="text-sm text-slate-600 dark:text-slate-300">
+                                {user.phone && (
+                                  <div className="flex items-center gap-1 mb-1">
+                                    <Phone className="w-3 h-3" />
+                                    {user.phone}
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-1">
+                                  <Mail className="w-3 h-3" />
+                                  {user.email}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              <span className="font-bold text-blue-600 dark:text-blue-400">
+                                {user.totalHours}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              <div className="flex gap-2">
+                                <Link
+                                  to={`/activity/${user.id}`}
+                                  className="p-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                  title="View History"
+                                >
+                                  <History className="w-4 h-4" />
+                                </Link>
+                                <button
+                                  onClick={() => handleDeleteUser(user.id)}
+                                  className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                  title="Delete User"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -753,71 +531,87 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-orange-100 dark:divide-slate-700">
-                      {filteredEvents.map((event) => (
-                        <tr key={event.id} className="border-b  border-orange-100 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-700/50">
-                          <td className="py-3 px-2 sm:px-4">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                              <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0">
-                                {event.title.charAt(0)}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <Link
-                                  to={`/events/${event.id}`}
-                                  className="font-medium text-slate-800 dark:text-white hover:text-orange-600 dark:hover:text-orange-400 transition-colors block"
-                                >
-                                  <div className="truncate">{event.title}</div>
-                                </Link>
-                                <p className="text-sm text-slate-600 dark:text-slate-300 truncate">
-                                  {event.chapters.join(', ')}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 sm:px-4 hidden sm:table-cell">
-                            <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-2 py-1 rounded-lg text-xs font-medium">
-                              {event.category}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 sm:px-4 hidden md:table-cell">
-                            <span className={`px-2 py-1 rounded-lg text-xs font-medium capitalize ${event.status === 'PUBLISHED'
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                                : event.status === 'DRAFT'
-                                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
-                                  : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
-                              }`}>
-                              {event.status.toLowerCase()}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 sm:px-4">
-                            <span className="font-bold text-blue-600 dark:text-blue-400">
-                              {event.instances.length}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 sm:px-4 hidden lg:table-cell">
-                            <span className="text-sm text-slate-600 dark:text-slate-300">
-                              {formatLocalDate(event.createdAt, 'MMM d, yyyy')}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 sm:px-4">
-                            <div className="flex gap-2">
-                              <Link
-                                to={`/edit-event/${event.id}`}
-                                className="p-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                                title="Edit Event"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Link>
-                              <button
-                                onClick={() => handleDeleteEvent(event.id)}
-                                className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                title="Delete Event"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                      {eventsLoading ? (
+                        <tr>
+                          <td colSpan={6} className="py-8">
+                            <div className="flex justify-center">
+                              <LoadingSpinner size="md" />
                             </div>
                           </td>
                         </tr>
-                      ))}
+                      ) : filteredEvents.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-500 dark:text-slate-400">
+                            {eventSearch ? 'No events found matching your search.' : 'No events found.'}
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredEvents.map((event) => (
+                          <tr key={event.id} className="border-b  border-orange-100 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-700/50">
+                            <td className="py-3 px-2 sm:px-4">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0">
+                                  {event.title.charAt(0)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <Link
+                                    to={`/events/${event.id}`}
+                                    className="font-medium text-slate-800 dark:text-white hover:text-orange-600 dark:hover:text-orange-400 transition-colors block"
+                                  >
+                                    <div className="truncate">{event.title}</div>
+                                  </Link>
+                                  <p className="text-sm text-slate-600 dark:text-slate-300 truncate">
+                                    {event.chapters.join(', ')}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4 hidden sm:table-cell">
+                              <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-2 py-1 rounded-lg text-xs font-medium">
+                                {event.category}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4 hidden md:table-cell">
+                              <span className={`px-2 py-1 rounded-lg text-xs font-medium capitalize ${event.status === 'PUBLISHED'
+                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                                  : event.status === 'DRAFT'
+                                    ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
+                                }`}>
+                                {event.status.toLowerCase()}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              <span className="font-bold text-blue-600 dark:text-blue-400">
+                                {event.instances.length}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4 hidden lg:table-cell">
+                              <span className="text-sm text-slate-600 dark:text-slate-300">
+                                {formatLocalDate(event.createdAt, 'MMM d, yyyy')}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              <div className="flex gap-2">
+                                <Link
+                                  to={`/edit-event/${event.id}`}
+                                  className="p-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                  title="Edit Event"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Link>
+                                <button
+                                  onClick={() => handleDeleteEvent(event.id)}
+                                  className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                  title="Delete Event"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>

@@ -59,7 +59,8 @@ export default function Events() {
     const handleScroll = () => {
       const controlsElement = document.getElementById("controls");
       if (controlsElement) {
-        setStickyControls(window.scrollY > controlsElement.offsetHeight);
+        const rect = controlsElement.getBoundingClientRect();
+        setStickyControls(rect.top <= 0);
       }
 
       // Infinite scroll detection
@@ -94,7 +95,8 @@ export default function Events() {
       </div>
 
       {/* Filters */}
-      <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 sticky w-full top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6"}`}>
+            <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700/50 sticky top-0 z-50 transition-all ${stickyControls ? "border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6 rounded-xl"}`}>
+
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -104,7 +106,7 @@ export default function Events() {
                 placeholder="Search events..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={`w-full pl-10 pr-4 border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "py-2 text-sm" : "py-3 text-base"}`}
+                className={`w-full pl-10 pr-4 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white p-2 text-sm`}
               />
             </div>
           </div>
@@ -113,7 +115,7 @@ export default function Events() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
+              className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white p-2 text-sm`}
             >
               <option value="all">All Categories</option>
               {categories.map(category => (
@@ -124,7 +126,7 @@ export default function Events() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'date' | 'title' | 'category')}
-              className={`border-2 border-orange-200 dark:border-slate-600 rounded-xl focus:border-orange-400 dark:focus:border-orange-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white transform ${stickyControls ? "px-3 py-2 text-sm" : "px-4 py-3"}`}
+              className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white p-2 text-sm`}
             >
               <option value="date">Sort by Date</option>
               <option value="title">Sort by Title</option>
@@ -137,7 +139,7 @@ export default function Events() {
       {/* Events Grid */}
       <div>
         {loading ? (
-          <div className="col-span-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-12 rounded-2xl shadow-lg text-center transform border-4 border-orange-200 dark:border-slate-600">
+          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-12 rounded-xl shadow-lg text-center border border-slate-200 dark:border-slate-700/50">
             <LoadingSpinner size="lg" />
           </div>
         ) : events.length === 0 ? (

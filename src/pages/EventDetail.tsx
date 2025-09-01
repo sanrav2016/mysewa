@@ -21,7 +21,16 @@ export default function EventDetail() {
   const [searchTerm, setSearchTerm] = useState('');
   const [afterDate, setAfterDate] = useState('');
   const [beforeDate, setBeforeDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchTerm('');
+    setAfterDate('');
+    setBeforeDate('');
+    setStatusFilter('all');
+  };
 
   // Statistics table state
   const [volunteerSearchTerm, setVolunteerSearchTerm] = useState('');
@@ -206,17 +215,96 @@ export default function EventDetail() {
 
   const filteredInstances = event.instances
     .filter(instance => {
-      const textMatch = [instance.description, instance.location].join(' ').toLowerCase().includes(searchTerm.toLowerCase());
+      const hasStartDate = instance.startDate && instance.startDate !== '';
+      const isPast = hasStartDate ? new Date(instance.startDate) < new Date() : false;
+      const isEnabled = instance.enabled !== false;
+      const isCancelled = instance.status === 'CANCELLED';
+      const isCompleted = instance.status === 'COMPLETED';
+
+      // Simple text search across session data
+      const searchText = searchTerm.toLowerCase();
+      
+      // Create searchable text from session data
+      const instanceDate = hasStartDate ? new Date(instance.startDate) : null;
+      const dateString = instanceDate ? instanceDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }) : '';
+      const dateStringShort = instanceDate ? instanceDate.toLocaleDateString('en-US', { 
+        month: '2-digit', 
+        day: '2-digit', 
+        year: 'numeric' 
+      }) : '';
+      
+             const searchableText = [
+         instance.description || '',
+         instance.location || '',
+         instance.status || '',
+         // Add status-based search terms
+         isEnabled && !isPast && !isCancelled && !isCompleted ? 'open' : '',
+         dateString,
+         dateStringShort
+       ].join(' ').toLowerCase();
+
+      // Simple text matching
+      const textMatch = !searchTerm.trim() || searchableText.includes(searchText);
+
+      // Date filtering
       const date = instance.startDate ? new Date(instance.startDate) : new Date(0);
       const afterMatch = afterDate ? isAfter(date, new Date(afterDate)) : true;
       const beforeMatch = beforeDate ? isBefore(date, new Date(beforeDate)) : true;
-      return textMatch && afterMatch && beforeMatch;
+
+      // Status filtering
+      let statusMatch = true;
+      if (statusFilter !== 'all') {
+        switch (statusFilter) {
+          case 'open':
+            statusMatch = isEnabled && !isPast && !isCancelled && !isCompleted;
+            break;
+          case 'closed':
+            statusMatch = !isEnabled;
+            break;
+          case 'past':
+            statusMatch = isPast;
+            break;
+          case 'cancelled':
+            statusMatch = isCancelled;
+            break;
+          case 'completed':
+            statusMatch = isCompleted;
+            break;
+          default:
+            statusMatch = true;
+        }
+      }
+
+      return textMatch && afterMatch && beforeMatch && statusMatch;
     })
-          .sort((a, b) => {
-        const aDate = a.startDate ? new Date(a.startDate).getTime() : 0;
-        const bDate = b.startDate ? new Date(b.startDate).getTime() : 0;
-        return aDate - bDate;
-      });
+    .sort((a: any, b: any) => {
+      const aDate = a.startDate ? new Date(a.startDate).getTime() : 0;
+      const bDate = b.startDate ? new Date(b.startDate).getTime() : 0;
+      const currentTime = new Date().getTime();
+      
+      // If both dates are in the future, sort newest first
+      if (aDate > currentTime && bDate > currentTime) {
+        return bDate - aDate; // Newest first
+      }
+      // If both dates are in the past, sort newest first
+      if (aDate <= currentTime && bDate <= currentTime) {
+        return bDate - aDate; // Newest first
+      }
+      // If one is future and one is past, future comes first
+      if (aDate > currentTime && bDate <= currentTime) {
+        return -1; // a comes first
+      }
+      if (aDate <= currentTime && bDate > currentTime) {
+        return 1; // b comes first
+      }
+      
+      return bDate - aDate; // Default to newest first
+    });
 
   return (
     <div className="space-y-6 p-4 lg:p-8">
@@ -298,19 +386,35 @@ export default function EventDetail() {
           Sessions ({filteredInstances.length})
         </h2>
 
-        <div className="flex flex-col md:flex-row items-center gap-4 mb-6 w-full">
+        <div className="flex flex-col lg:flex-row items-center gap-4 mb-6 w-full">
           {/* Search Input */}
           <div className="flex-1 w-full">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search sessions..."
+                placeholder="Search by description, location, date, or status..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white py-2 text-sm"
               />
             </div>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex-shrink-0">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-400 text-sm"
+            >
+              <option value="all">All Statuses</option>
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+              <option value="past">Past</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="completed">Completed</option>
+            </select>
           </div>
 
           {/* Date Range Picker */}
@@ -319,7 +423,7 @@ export default function EventDetail() {
               type="date"
               value={afterDate}
               onChange={(e) => setAfterDate(e.target.value)}
-              className="p-2 border text-sm border-slate-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none focus:indigo-orange-400 dark:focus:indigo-orange-400"
+              className="p-2 border text-sm border-slate-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-400"
             />
             <span className="text-slate-600 dark:text-slate-300 font-medium text-center">to</span>
             <input
@@ -329,18 +433,32 @@ export default function EventDetail() {
               className="p-2 border text-sm border-slate-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-400"
             />
           </div>
+
+          {/* Clear Filters Button */}
+          {(searchTerm || afterDate || beforeDate || statusFilter !== 'all') && (
+            <div className="flex-shrink-0">
+              <button
+                onClick={clearFilters}
+                className="px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-slate-600 rounded-lg bg-white/50 dark:bg-slate-700/50 hover:bg-white/70 dark:hover:bg-slate-700/70 transition-colors"
+              >
+                Clear Filters
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="space-y-4">
-          {filteredInstances.length == 0 && <div className="p-16 text-sm text-center text-slate-500">No sessions match your search</div>}
-          {filteredInstances.sort((a, b) => {
-            const aDate = a.startDate ? new Date(a.startDate).getTime() : 0;
-            const bDate = b.startDate ? new Date(b.startDate).getTime() : 0;
-            return bDate - aDate; // Reverse order (newest first)
-          }).map(instance => {
+        <div className="space-y-3">
+          {filteredInstances.length == 0 && (
+            <div className="p-16 text-sm text-center text-slate-500">
+              No sessions match your search
+            </div>
+          )}
+          {filteredInstances.map((instance: any) => {
             const hasStartDate = instance.startDate && instance.startDate !== '';
             const isPast = hasStartDate ? new Date(instance.startDate) < new Date() : false;
             const isEnabled = instance.enabled !== false;
+            const isCancelled = instance.status === 'CANCELLED';
+            const isCompleted = instance.status === 'COMPLETED';
 
             const studentCount = instance.signups?.filter((s: any) => s.user?.role === 'STUDENT' && s.status === 'CONFIRMED').length || 0;
             const parentCount = instance.signups?.filter((s: any) => s.user?.role === 'PARENT' && s.status === 'CONFIRMED').length || 0;
@@ -352,121 +470,97 @@ export default function EventDetail() {
               <div
                 key={instance.id}
                 onClick={() => navigate(`/sessions/${instance.id}`)}
-                className={`group cursor-pointer rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 ${!isEnabled
+                className={`group cursor-pointer rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 ${!isEnabled
                   ? 'bg-slate-100 dark:bg-slate-800 opacity-60'
                   : isPast
                     ? 'bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 opacity-80'
-                    : 'bg-gradient-to-br from-white to-orange-50 dark:from-slate-800 dark:to-slate-700 hover:from-orange-50 hover:to-orange-100 dark:hover:from-slate-700 dark:hover:to-slate-600'
+                    : isCompleted
+                      ? 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 opacity-90'
+                      : 'bg-gradient-to-br from-white to-orange-50 dark:from-slate-800 dark:to-slate-700 hover:from-orange-50 hover:to-orange-100 dark:hover:from-slate-700 dark:hover:to-slate-600'
                   }`}
               >
                 {/* Status Bar */}
-                <div className={`h-2 w-full ${!isEnabled
+                <div className={`h-1 w-full ${!isEnabled || isCancelled
                   ? 'bg-red-400'
                   : isPast
                     ? 'bg-slate-400'
-                    : 'bg-gradient-to-r from-green-400 to-green-500'
+                    : isCompleted
+                      ? 'bg-gradient-to-r from-green-400 to-green-500'
+                      : 'bg-gradient-to-r from-green-400 to-green-500'
                   }`} />
 
-                <div className="p-6">
-                  {/* Header with Status Badge */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <EventInstanceDisplay 
-                        instance={instance} 
-                        className="text-base font-medium text-slate-800 dark:text-white"
+                <div className="p-3 flex flex-col gap-3">
+                  {/* Session Info */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+                    <div className="flex-1 min-w-0">
+                      <EventInstanceDisplay
+                        instance={instance}
+                        size="medium"
+                        showIcons={true}
+                        showDescription={true}
+                        className="text-slate-800 dark:text-white"
                       />
                     </div>
-                    <div className="ml-4">
-                      {!isEnabled ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
-                          Closed
-                        </span>
-                      ) : isPast ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-400">
-                          Past
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-                          Open
-                        </span>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Session Description */}
-                  {instance.description && (
-                    <div className="mb-4 p-3 bg-blue-50 dark:bg-slate-700/50 rounded-lg border-l-4 border-blue-400">
-                      <p className="text-sm text-slate-600 dark:text-slate-300 italic">
-                        "{instance.description}"
-                      </p>
-                    </div>
-                  )}
+                    {/* Status and Capacity Info */}
+                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+                      {/* Status Badge */}
+                      <div className="flex-shrink-0">
+                        {!isEnabled ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-900/30 text-slate-800 dark:text-slate-300">
+                            Closed
+                          </span>
+                        ) : isPast ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-400">
+                            Past
+                          </span>
+                        ) : isCancelled ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
+                            Cancelled
+                          </span>
+                        ) : isCompleted ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+                            Completed
+                          </span>
+                        )
+                          : (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+                              Open
+                            </span>
+                          )}
+                      </div>
 
-                  {/* Capacity Information */}
-                  <div className="space-y-3">
-                    {/* Progress Bar */}
-                    <div className="relative">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          Capacity
-                        </span>
-                        <span className="text-sm font-bold text-slate-800 dark:text-white">
+                      {/* Capacity Info */}
+                      <div className="flex-shrink-0 text-right">
+                        <div className="text-xs font-medium text-slate-700 dark:text-slate-300">
                           {totalSignups}/{totalCapacity}
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-200 dark:bg-slate-600 rounded-full h-2.5">
-                        <div 
-                          className={`h-2.5 rounded-full transition-all duration-300 ${fillPercentage >= 100 
-                            ? 'bg-red-500' 
-                            : fillPercentage >= 80 
-                              ? 'bg-yellow-500' 
-                              : 'bg-green-500'
-                            }`}
-                          style={{ width: `${Math.min(fillPercentage, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Detailed Breakdown */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <div className="flex items-center justify-center gap-2 mb-1">
-                          <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
-                            Students
+                        </div>
+                        <div className="w-16 bg-slate-200 dark:bg-slate-600 rounded-full h-1.5 mt-1">
+                          <div
+                            className={`h-1.5 rounded-full transition-all duration-300 ${fillPercentage >= 100
+                              ? 'bg-red-500'
+                              : fillPercentage >= 80
+                                ? 'bg-yellow-500'
+                                : 'bg-green-500'
+                              }`}
+                            style={{ width: `${Math.min(fillPercentage, 100)}%` }}
+                          />
+                        </div>
+                        <div className="flex gap-2 mt-1 text-xs text-slate-600 dark:text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {studentCount}/{instance.studentCapacity || 0}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users2 className="w-3 h-3" />
+                            {parentCount}/{instance.parentCapacity || 0}
                           </span>
                         </div>
-                        <div className="text-lg font-bold text-slate-800 dark:text-white">
-                          {studentCount}<span className="text-sm font-normal text-slate-500">/{instance.studentCapacity || 0}</span>
-                        </div>
                       </div>
-                      
-                      <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <div className="flex items-center justify-center gap-2 mb-1">
-                          <Users2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-                          <span className="text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wide">
-                            Parents
-                          </span>
-                        </div>
-                        <div className="text-lg font-bold text-slate-800 dark:text-white">
-                          {parentCount}<span className="text-sm font-normal text-slate-500">/{instance.parentCapacity || 0}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Call to Action */}
-                  <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-600">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-500 dark:text-slate-400">
-                        Click to view details & sign up
-                      </span>
-                      <ArrowLeft className="w-4 h-4 text-indigo-500 transform rotate-180 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
                 </div>
-              </div>
-            );
+              </div>);
           })}
         </div>
       </div>
@@ -478,10 +572,6 @@ export default function EventDetail() {
             <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
               Volunteers ({volunteerData.length})
             </h2>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <Award className="w-4 h-4" />
-            <span>Total Hours: {volunteerData.reduce((sum, v) => sum + (v.hoursEarned || 0), 0)}</span>
           </div>
         </div>
 
@@ -585,53 +675,50 @@ export default function EventDetail() {
                         : 0;
 
                       return (
-                        <React.Fragment key={volunteer.userId}>
-                                                  <tr
+                        <tr
+                          key={volunteer.userId}
                           className="border-b border-orange-100 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-slate-700/50 transition-colors"
                         >
-                            <td className="py-3 px-2 sm:px-4">
-                              <div className="flex items-center gap-2 sm:gap-3">
-                                <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                  {user.name.charAt(0)}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <Link className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors dark:text-white text-slate-800 truncate" to={`/profile/${user.id}`}>
-                                    <span className="font-medium truncate">{user.name}</span>
-                                  </Link>
-                                  <div className="text-sm text-slate-500 dark:text-slate-400 truncate">{user.email}</div>
-                                </div>
+                          <td className="py-3 px-2 sm:px-4">
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                {user.name.charAt(0)}
                               </div>
-                            </td>
-                            <td className="py-3 px-2 sm:px-4 hidden sm:table-cell">
-                              <span className={`capitalize px-2 py-1 rounded-full text-xs font-medium ${user.role === 'STUDENT' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200' :
-                                user.role === 'PARENT' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' :
-                                  'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200'
-                                }`}>
-                                {user.role.toLowerCase()}
-                              </span>
-                            </td>
-                            <td className="py-3 px-2 sm:px-4">
-                              <div className="flex items-center gap-1 sm:gap-2">
-                                <span className="font-bold text-orange-600 dark:text-orange-400 text-base sm:text-lg">
-                                  {volunteer.totalSignups}
-                                </span>
-                                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                                  session{volunteer.totalSignups !== 1 ? 's' : ''}
-                                </span>
+                              <div className="min-w-0 flex-1">
+                                <Link className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors dark:text-white text-slate-800 truncate" to={`/profile/${user.id}`}>
+                                  <span className="font-medium truncate">{user.name}</span>
+                                </Link>
+                                <div className="text-sm text-slate-500 dark:text-slate-400 truncate">{user.email}</div>
                               </div>
-                            </td>
-                            <td className="py-3 px-2 sm:px-4">
-                              <span className="font-medium text-slate-800 dark:text-white">
-                                {volunteer.totalEventHours}
+                            </div>
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 hidden sm:table-cell">
+                            <span className={`capitalize px-2 py-1 rounded-full text-xs font-medium ${user.role === 'STUDENT' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200' :
+                              user.role === 'PARENT' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' :
+                                'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200'
+                              }`}>
+                              {user.role.toLowerCase()}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 sm:px-4">
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <span className="font-bold text-orange-600 dark:text-orange-400 text-base sm:text-lg">
+                                {volunteer.totalSignups}
                               </span>
-                            </td>
-                            <td className="py-3 px-2 sm:px-4 text-sm text-slate-600 dark:text-slate-300 hidden md:table-cell">
-                              {earliestSignup > 0 ? format(new Date(earliestSignup), 'MMM d, yyyy') : 'N/A'}
-                            </td>
-                          </tr>
-
-
-                        </React.Fragment>
+                              <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                                session{volunteer.totalSignups !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-2 sm:px-4">
+                            <span className="font-medium text-slate-800 dark:text-white">
+                              {volunteer.totalEventHours}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 text-sm text-slate-600 dark:text-slate-300 hidden md:table-cell">
+                            {earliestSignup > 0 ? format(new Date(earliestSignup), 'MMM d, yyyy') : 'N/A'}
+                          </td>
+                        </tr>
                       );
                     })
                   )}

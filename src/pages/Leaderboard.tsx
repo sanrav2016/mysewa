@@ -36,7 +36,8 @@ export default function Leaderboard() {
     const handleScroll = () => {
       const controlsElement = document.getElementById("controls");
       if (controlsElement) {
-        setStickyControls(window.scrollY > controlsElement.offsetHeight);
+        const rect = controlsElement.getBoundingClientRect();
+        setStickyControls(rect.top <= 0);
       }
     };
 
@@ -79,7 +80,13 @@ export default function Leaderboard() {
     return users.map(user => {
       const userSignups = signups.filter(signup => signup.userId === user.id);
       const completedEvents = userSignups.filter(signup => signup.status === 'CONFIRMED').length;
-      const totalHours = userSignups.reduce((sum, signup) => sum + (signup.hoursEarned || 0), 0);
+      const totalHours = userSignups.reduce((sum, signup) => {
+        // Only count hours for approved signups
+        if (signup.status === 'CONFIRMED' && signup.approval === 'APPROVED') {
+          return sum + (signup.hoursEarned || 0);
+        }
+        return sum;
+      }, 0);
 
       return {
         ...user,
@@ -92,7 +99,7 @@ export default function Leaderboard() {
   const filteredUsers = useMemo(() => {
     return userStats
       .filter(user => {
-        const matchesRole = filterBy === 'all' || user.role === filterBy;
+        const matchesRole = filterBy === 'all' || user.role === filterBy.toUpperCase();
         const matchesChapter = chapterFilter === 'all' || user.chapter === chapterFilter;
         const matchesCity = cityFilter === 'all' || user.city === cityFilter;
         const matchesSearch =
@@ -232,7 +239,7 @@ export default function Leaderboard() {
       </div>
 
       {/* Filters */}
-      <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 sticky top-0 z-50 transition-all ${stickyControls ? "rounded-none border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-4 sm:p-6"}`}>
+      <div id="controls" className={`bg-white/70 dark:bg-slate-800/70 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700/50 sticky top-0 z-50 transition-all ${stickyControls ? "border-0 border-b -mx-4 lg:-mx-8 w-[calc(100%_+_2rem)] lg:w-[calc(100%_+_4rem)] px-4 lg:px-8 py-4" : "p-6 rounded-xl"}`}>
         <div className="flex gap-3 flex-wrap">
           {/* View Type Selector */}
           <div className="flex gap-2 flex-wrap">
@@ -255,7 +262,7 @@ export default function Leaderboard() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white px-3 py-2 text-sm ${stickyControls ? "text-sm" : "text-base"}`}
+              className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white p-2 text-sm`}
             >
               <option value="hours">Sort by Hours</option>
               <option value="events">Sort by Events</option>
@@ -266,7 +273,7 @@ export default function Leaderboard() {
                 <select
                   value={filterBy}
                   onChange={(e) => setFilterBy(e.target.value as FilterBy)}
-                  className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white px-3 py-2 text-sm ${stickyControls ? "text-sm" : "text-base"}`}
+                  className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white p-2 text-sm`}
                 >
                   <option value="all">All Roles</option>
                   <option value="student">Students</option>
@@ -277,7 +284,7 @@ export default function Leaderboard() {
                 <select
                   value={chapterFilter}
                   onChange={(e) => setChapterFilter(e.target.value)}
-                  className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white px-3 py-2 text-sm ${stickyControls ? "text-sm" : "text-base"}`}
+                  className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white p-2 text-sm`}
                 >
                   <option value="all">All Chapters</option>
                   {chapters.map(chapter => (
@@ -288,7 +295,7 @@ export default function Leaderboard() {
                 <select
                   value={cityFilter}
                   onChange={(e) => setCityFilter(e.target.value)}
-                  className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white px-3 py-2 text-sm ${stickyControls ? "text-sm" : "text-base"}`}
+                  className={`border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-white p-2 text-sm`}
                 >
                   <option value="all">All Cities</option>
                   {cities.map(city => (
@@ -309,9 +316,9 @@ export default function Leaderboard() {
               <LoadingSpinner size="lg" />
             </div>
           ) : displayData.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-slate-600 dark:text-slate-300 text-lg">
-                No {viewType} found matching your criteria
+            <div className="text-center py-16">
+              <p className="text-slate-600 dark:text-slate-300 text-sm">
+                No {viewType}s found matching your criteria
               </p>
             </div>
           ) : (
