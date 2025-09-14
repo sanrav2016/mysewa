@@ -23,13 +23,9 @@ import AdminDashboard from './pages/AdminDashboard';
 import Leaderboard from './pages/Leaderboard';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
-import { Analytics } from "@vercel/analytics/next"
 
 function App() {
   return (
-    <>
-      <Analytics />
-
       <ThemeProvider>
         <AuthProvider>
           <NotificationProvider>
@@ -85,7 +81,6 @@ function App() {
           </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>
-    </>
   );
 }
 
