@@ -27,62 +27,65 @@ import { Analytics } from "@vercel/analytics/next"
 
 function App() {
   return (
-    <ThemeProvider>
+    <>
       <Analytics />
-      <AuthProvider>
-        <NotificationProvider>
-          <WebSocketProvider>
-            <Router>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }>
-                <Route index element={<Dashboard />} />
-                <Route path="profile" element={<Profile />} />
-                <Route path="profile/:userId" element={<Profile />} />
-                <Route path="notifications" element={<Notifications />} />
-                <Route path="activity" element={<Activity />} />
-                <Route path="activity/:userId" element={<Activity />} />
-                <Route path="calendar" element={<Calendar />} />
-                <Route path="events" element={<Events />} />
-                <Route path="events/:eventId" element={<EventDetail />} />
-                <Route path="sessions/:sessionId" element={<SessionDetail />} />
-                <Route path="create-event" element={
-                  <ProtectedRoute requiredRole="ADMIN">
-                    <EditEvent />
-                  </ProtectedRoute>
-                } />
-                <Route path="edit-event/:eventId" element={
-                  <ProtectedRoute requiredRole="ADMIN">
-                    <EditEvent />
-                  </ProtectedRoute>
-                } />
-                <Route path="edit-session/:sessionId" element={
-                  <ProtectedRoute requiredRole="ADMIN">
-                    <EditEvent />
-                  </ProtectedRoute>
-                } />
-                <Route path="chapter" element={<Chapter />} />
-                <Route path="leaderboard" element={<Leaderboard />} />
-                <Route path="admin" element={
-                  <ProtectedRoute requiredRole="ADMIN">
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="settings" element={<Settings />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Router>
-          </WebSocketProvider>
-        </NotificationProvider>
-      </AuthProvider>
-    </ThemeProvider>
+
+      <ThemeProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <WebSocketProvider>
+              <Router>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/" element={
+                    <ProtectedRoute>
+                      <Layout />
+                    </ProtectedRoute>
+                  }>
+                    <Route index element={<Dashboard />} />
+                    <Route path="profile" element={<Profile />} />
+                    <Route path="profile/:userId" element={<Profile />} />
+                    <Route path="notifications" element={<Notifications />} />
+                    <Route path="activity" element={<Activity />} />
+                    <Route path="activity/:userId" element={<Activity />} />
+                    <Route path="calendar" element={<Calendar />} />
+                    <Route path="events" element={<Events />} />
+                    <Route path="events/:eventId" element={<EventDetail />} />
+                    <Route path="sessions/:sessionId" element={<SessionDetail />} />
+                    <Route path="create-event" element={
+                      <ProtectedRoute requiredRole="ADMIN">
+                        <EditEvent />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="edit-event/:eventId" element={
+                      <ProtectedRoute requiredRole="ADMIN">
+                        <EditEvent />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="edit-session/:sessionId" element={
+                      <ProtectedRoute requiredRole="ADMIN">
+                        <EditEvent />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="chapter" element={<Chapter />} />
+                    <Route path="leaderboard" element={<Leaderboard />} />
+                    <Route path="admin" element={
+                      <ProtectedRoute requiredRole="ADMIN">
+                        <AdminDashboard />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="settings" element={<Settings />} />
+                  </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Router>
+            </WebSocketProvider>
+          </NotificationProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </>
   );
 }
 
