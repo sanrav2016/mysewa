@@ -172,7 +172,7 @@ export default function Chapter() {
           </div>
 
           <div className="flex flex-wrap gap-2 md:gap-3">
-            {(['all', 'student', 'parent', 'admin'] as const).map((role) => (
+            {(['ALL', 'STUDENT', 'PARENT', 'ADMIN'] as const).map((role) => (
               <button
                 key={role}
                 onClick={() => setRoleFilter(role)}
@@ -181,7 +181,7 @@ export default function Chapter() {
                   : 'bg-indigo-100 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-slate-600'
                   }`}
               >
-                {role.charAt(0).toUpperCase() + role.slice(1)}
+                {role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()}
               </button>
             ))}
 
