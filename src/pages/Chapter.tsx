@@ -172,7 +172,7 @@ export default function Chapter() {
           </div>
 
           <div className="flex flex-wrap gap-2 md:gap-3">
-            {(['ALL', 'STUDENT', 'PARENT', 'ADMIN'] as const).map((role) => (
+            {(['all', 'STUDENT', 'PARENT', 'ADMIN'] as const).map((role) => (
               <button
                 key={role}
                 onClick={() => setRoleFilter(role)}
